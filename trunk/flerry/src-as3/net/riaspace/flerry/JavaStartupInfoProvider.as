@@ -11,9 +11,9 @@ package net.riaspace.flerry
 	{
 		/**
 		 * Default classpath where {0} will be replaced with proper classpath separator and {1} with application classpath property 
-		 * "../ferry.jar{0}../libs/flex-messaging-core.jar{0}../libs/flex-messaging-common.jar"
+		 * "../flerry.jar{0}../libs/flex-messaging-core.jar{0}../libs/flex-messaging-common.jar"
 		 */
-		public var classpathTemplate:String = "./jars/ferry.jar{0}./jars/flex-messaging-core.jar{0}./jars/flex-messaging-common.jar{0}{1}";
+		public var classpathTemplate:String = "./jars/flerry.jar{0}./jars/flex-messaging-core.jar{0}./jars/flex-messaging-common.jar{0}{1}";
 		
 		public function getStartupInfo(binPath:String, source:String, singleton:Boolean, executablePath:String = null):NativeProcessStartupInfo
 		{
@@ -27,7 +27,7 @@ package net.riaspace.flerry
 				var args:Vector.<String> = new Vector.<String>();
 				args.push("-cp");
 				args.push(StringUtil.substitute(classpathTemplate, classpathSeparator, binPath));
-				args.push("net.riaspace.ferry.NativeObject");
+				args.push("net.riaspace.flerry.NativeObject");
 				args.push("-source", source, "-singleton", singleton);
 				startupInfo.arguments = args;
 				
