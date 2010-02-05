@@ -45,8 +45,9 @@
 
 		]]>
 	</fx:Script>
+	
 	<fx:Declarations>
-		<flerry:NativeObject id="nativeObject" binPath="./jars/flerry-demo.jar" source="net.riaspace.flerrydemo.MyJavaObject" fault="nativeObject_faultHandler(event)">
+		<flerry:NativeObject id="nativeObject" singleton="true" binPath="./jars/flerry-demo.jar" source="net.riaspace.flerrydemo.MyJavaObject" fault="nativeObject_faultHandler(event)">
 			<flerry:NativeMethod id="addMethod" name="add" result="addMethod_resultHandler(event)" />
 			<flerry:NativeMethod id="processComplexVOMethod" name="processComplexVO" result="processComplexVOMethod_resultHandler(event)" />
 		</flerry:NativeObject> 
