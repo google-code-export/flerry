@@ -9,6 +9,9 @@
 			import mx.controls.Alert;
 			import mx.rpc.events.FaultEvent;
 			import mx.rpc.events.ResultEvent;
+			import mx.utils.ObjectUtil;
+			
+			import net.riaspace.flerrydemo.models.ComplexVO;
 
 			protected function nativeObject_faultHandler(event:FaultEvent):void
 			{
@@ -25,11 +28,27 @@
 				nativeObject.add(parseInt(txtValue1.text), parseInt(txtValue2.text));
 			}
 
+			protected function btnSendComplexVO_clickHandler(event:MouseEvent):void
+			{
+				var cvo:ComplexVO = new ComplexVO();
+				cvo.someString = "Hello Java!";
+				cvo.someInteger = 0;
+				cvo.someDate = new Date();
+				
+				nativeObject.processComplexVO(cvo);
+			}
+
+			protected function processComplexVOMethod_resultHandler(event:ResultEvent):void
+			{
+				trace(ObjectUtil.toString(event.result));
+			}
+
 		]]>
 	</fx:Script>
 	<fx:Declarations>
 		<flerry:NativeObject id="nativeObject" binPath="./jars/flerry-demo.jar" source="net.riaspace.flerrydemo.MyJavaObject" fault="nativeObject_faultHandler(event)">
 			<flerry:NativeMethod id="addMethod" name="add" result="addMethod_resultHandler(event)" />
+			<flerry:NativeMethod id="processComplexVOMethod" name="processComplexVO" result="processComplexVOMethod_resultHandler(event)" />
 		</flerry:NativeObject> 
 	</fx:Declarations>
 	
@@ -40,5 +59,7 @@
 		<s:Button id="btnAdd" label="=" width="30" click="btnAdd_clickHandler(event)" />
 		<s:TextInput id="txtResult" width="30" editable="false" />
 	</s:HGroup>
+	
+	<s:Button id="btnSendComplexVO" label="Send ComplexVO" horizontalCenter="0" verticalCenter="50" click="btnSendComplexVO_clickHandler(event)"/>
 	
 </s:WindowedApplication>
