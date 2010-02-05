@@ -43,6 +43,16 @@
 				trace(ObjectUtil.toString(event.result));
 			}
 
+			protected function btnGetNotExistingVO_clickHandler(event:MouseEvent):void
+			{
+				nativeObject.getNotExistingVO("Hello Java");
+			}
+
+			protected function getNotExistingVOMethod_resultHandler(event:ResultEvent):void
+			{
+				trace(ObjectUtil.toString(event.result));
+			}
+
 		]]>
 	</fx:Script>
 	
@@ -50,6 +60,7 @@
 		<flerry:NativeObject id="nativeObject" singleton="true" binPath="./jars/flerry-demo.jar" source="net.riaspace.flerrydemo.MyJavaObject" fault="nativeObject_faultHandler(event)">
 			<flerry:NativeMethod id="addMethod" name="add" result="addMethod_resultHandler(event)" />
 			<flerry:NativeMethod id="processComplexVOMethod" name="processComplexVO" result="processComplexVOMethod_resultHandler(event)" />
+			<flerry:NativeMethod id="getNotExistingVOMethod" name="getNotExistingVO" result="getNotExistingVOMethod_resultHandler(event)" />
 		</flerry:NativeObject> 
 	</fx:Declarations>
 	
@@ -61,6 +72,8 @@
 		<s:TextInput id="txtResult" width="30" editable="false" />
 	</s:HGroup>
 	
-	<s:Button id="btnSendComplexVO" label="Send ComplexVO" horizontalCenter="0" verticalCenter="50" click="btnSendComplexVO_clickHandler(event)"/>
+	<s:Button id="btnSendComplexVO" label="Send ComplexVO" horizontalCenter="0" verticalCenter="30" click="btnSendComplexVO_clickHandler(event)"/>
+	
+	<s:Button id="btnGetNotExistingVO" label="Get NotExistingVO" horizontalCenter="0" verticalCenter="60" click="btnGetNotExistingVO_clickHandler(event)"/>
 	
 </s:WindowedApplication>
