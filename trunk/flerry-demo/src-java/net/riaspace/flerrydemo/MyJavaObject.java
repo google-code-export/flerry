@@ -3,6 +3,7 @@ package net.riaspace.flerrydemo;
 import java.util.Date;
 
 import net.riaspace.flerrydemo.models.ComplexVO;
+import net.riaspace.flerrydemo.models.NotExistingVO;
 
 public class MyJavaObject
 {
@@ -20,5 +21,12 @@ public class MyJavaObject
 		cvo.setSomeInteger(1);
 		
 		return cvo;
+	}
+	
+	public NotExistingVO getNotExistingVO(String someString)
+	{
+		NotExistingVO result = new NotExistingVO();
+		result.setSomeString("Hello Flex!");
+		return result;
 	}
 }
