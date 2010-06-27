@@ -1,7 +1,10 @@
 package net.riaspace.flerry;
 
 import java.io.ByteArrayOutputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 
 import flex.messaging.io.SerializationContext;
 import flex.messaging.io.amf.Amf3Input;
@@ -20,10 +23,19 @@ public class NativeObject
 	
 	protected Object singletonObject;
 	
+	protected static PrintStream out = System.out;
+	protected PrintStream fileOut;
+	
 	public NativeObject(Class<?> sourceClass, Boolean singleton) 
 	{
 		this.sourceClass = sourceClass;
 		this.singleton = singleton;
+		
+		try {
+			System.setOut(new PrintStream(new FileOutputStream("out.log", true)));
+		} catch (FileNotFoundException e) {
+			// TODO what to do here?
+		}
 	}
 	
 	public void init()
@@ -114,9 +126,10 @@ public class NativeObject
 			message.setCorrelationId(correlationId);
 
 			amf3Output.writeObject(message);
-			System.out.write(baos.toByteArray());
-
+			out.write(baos.toByteArray());
+			
 			amf3Output.close();
+			
 		}
 		catch (Exception e)
 		{
@@ -145,6 +158,29 @@ public class NativeObject
 		catch (Exception e1)
 		{
 			e1.printStackTrace();
+		}
+	}
+	
+	public static void sendMessage(Object object, String correlationId){
+		try
+		{
+			Amf3Output amf3Output = new Amf3Output(SerializationContext.getSerializationContext());			
+			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			amf3Output.setOutputStream(baos);
+			
+			AcknowledgeMessage message = new AcknowledgeMessage();
+			message.setBody(object);
+			message.setCorrelationId(correlationId);
+
+			amf3Output.writeObject(message);
+			out.write(baos.toByteArray());
+			
+			amf3Output.close();
+			
+		}
+		catch (Exception e)
+		{
+			handleException(e, correlationId);
 		}
 	}
 	

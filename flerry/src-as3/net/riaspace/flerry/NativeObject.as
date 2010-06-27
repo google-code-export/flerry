@@ -19,7 +19,7 @@ package net.riaspace.flerry
 	import mx.rpc.AsyncToken;
 	import mx.rpc.events.FaultEvent;
 	import mx.rpc.events.ResultEvent;
-
+	
 	use namespace flash_proxy;
 	use namespace mx_internal;
 	
@@ -29,9 +29,9 @@ package net.riaspace.flerry
 	[Event(name="fault", type="mx.rpc.events.FaultEvent")]
 	public dynamic class NativeObject extends Proxy implements IEventDispatcher
 	{
-	
+		
 		public static const STOP_PROCESS_HEADER:String = "STOP_PROCESS_HEADER";
-
+		
 		[Bindable]
 		public var source:String;
 		
@@ -67,6 +67,7 @@ package net.riaspace.flerry
 			nativeProcess.addEventListener(ProgressEvent.STANDARD_OUTPUT_DATA, onOutputData);
 			nativeProcess.addEventListener(ProgressEvent.STANDARD_ERROR_DATA, onErrorData);
 			nativeProcess.start(startupInfo);
+			
 		}
 		
 		protected function onOutputData(event:ProgressEvent):void
@@ -74,6 +75,13 @@ package net.riaspace.flerry
 			var message:AcknowledgeMessage = nativeProcess.standardOutput.readObject() as AcknowledgeMessage;
 			if (message != null)
 			{
+				// if message isn't a response to a request then dispatch MessageEvent
+				if(tokens[message.correlationId] == null){
+					var msgEvent:MessageEvent = new MessageEvent(message.correlationId, message.body)					
+					dispatchEvent(msgEvent)
+					return
+				}
+				
 				var token:AsyncToken = tokens[message.correlationId];
 				delete tokens[message.correlationId];
 				
@@ -122,6 +130,21 @@ package net.riaspace.flerry
 				throw new Error("NativeProcess error without correlationId: " + message);
 			}
 		}
+		/**
+		 * tries to close remote process
+		 */
+		public function exit():void{
+			if(nativeProcess)
+				nativeProcess.exit(true);
+		}
+		/**
+		 * Subscribe to receive remote messages.
+		 * @param String messageId
+		 * @param Function(event:MessageEvent)
+		 */
+		public function subscribe(messageId:String, handler:Function):void{
+			addEventListener(messageId,handler);
+		}
 		
 		override flash_proxy function callProperty(methodName:*, ... args):* 
 		{
@@ -144,7 +167,7 @@ package net.riaspace.flerry
 			message.operation = method.name;
 			message.source = source;
 			message.headers = {SINGLETON_HEADER:singleton};
-
+			
 			if (args.length == 1)
 			{
 				message.body = args[0];
