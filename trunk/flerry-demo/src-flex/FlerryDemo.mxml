@@ -61,13 +61,11 @@
 			{
 				nativeObject.startThread();
 			}
-			
 
 			protected function startThreadMethod_resultHandler(event:ResultEvent):void
 			{
 				trace(event.result);
 			}
-
 
 			protected function windowedapplication1_creationCompleteHandler(event:FlexEvent):void
 			{
@@ -79,9 +77,6 @@
 			{
 				trace(event.data["count"]);
 			}
-
-
-
 
 			protected function btnStopThread_clickHandler(event:MouseEvent):void
 			{
