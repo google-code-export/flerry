@@ -33,6 +33,7 @@ public class NativeObject
 		
 		try {
 			System.setOut(new PrintStream(new FileOutputStream("out.log", true)));
+			System.setErr(new PrintStream(new FileOutputStream("err.log", true)));
 		} catch (FileNotFoundException e) {
 			// TODO what to do here?
 		}
