@@ -1,16 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <s:WindowedApplication xmlns:fx="http://ns.adobe.com/mxml/2009" 
 			   xmlns:s="library://ns.adobe.com/flex/spark" 
-			   xmlns:mx="library://ns.adobe.com/flex/mx" minWidth="300" minHeight="200" xmlns:flerry="net.riaspace.flerry.*">
+			   xmlns:mx="library://ns.adobe.com/flex/mx" minWidth="300" minHeight="300" xmlns:flerry="net.riaspace.flerry.*"
+			   creationComplete="windowedapplication1_creationCompleteHandler(event)"
+			   >
 	<fx:Script>
 		<![CDATA[
 			import flash.events.MouseEvent;
 			
 			import mx.controls.Alert;
+			import mx.events.FlexEvent;
 			import mx.rpc.events.FaultEvent;
 			import mx.rpc.events.ResultEvent;
 			import mx.utils.ObjectUtil;
 			
+			import net.riaspace.flerry.MessageEvent;
 			import net.riaspace.flerrydemo.models.ComplexVO;
 
 			protected function nativeObject_faultHandler(event:FaultEvent):void
@@ -53,6 +57,37 @@
 				trace(ObjectUtil.toString(event.result));
 			}
 
+			protected function btnStartThread_clickHandler(event:MouseEvent):void
+			{
+				nativeObject.startThread();
+			}
+			
+
+			protected function startThreadMethod_resultHandler(event:ResultEvent):void
+			{
+				trace(event.result);
+			}
+
+
+			protected function windowedapplication1_creationCompleteHandler(event:FlexEvent):void
+			{
+				// Subscribe to receive remote messages.
+				nativeObject.subscribe("sendMsg",messageHandler);
+			}
+			
+			protected function messageHandler(event:MessageEvent):void
+			{
+				trace(event.data["count"]);
+			}
+
+
+
+
+			protected function btnStopThread_clickHandler(event:MouseEvent):void
+			{
+				nativeObject.exit()
+			}
+
 		]]>
 	</fx:Script>
 	
@@ -61,10 +96,11 @@
 			<flerry:NativeMethod id="addMethod" name="add" result="addMethod_resultHandler(event)" />
 			<flerry:NativeMethod id="processComplexVOMethod" name="processComplexVO" result="processComplexVOMethod_resultHandler(event)" />
 			<flerry:NativeMethod id="getNotExistingVOMethod" name="getNotExistingVO" result="getNotExistingVOMethod_resultHandler(event)" />
+			<flerry:NativeMethod id="startThreadMethod" name="startThread" result="startThreadMethod_resultHandler(event)" />
 		</flerry:NativeObject> 
 	</fx:Declarations>
 	
-	<s:HGroup verticalAlign="middle" textAlign="center" horizontalCenter="0" verticalCenter="0">
+	<s:HGroup verticalAlign="middle" textAlign="center" horizontalCenter="0" verticalCenter="-73">
 		<s:TextInput id="txtValue1" text="2" width="30" />
 		<s:Label text="+" width="30" />
 		<s:TextInput id="txtValue2" text="3" width="30" />
@@ -72,8 +108,11 @@
 		<s:TextInput id="txtResult" width="30" editable="false" />
 	</s:HGroup>
 	
-	<s:Button id="btnSendComplexVO" label="Send ComplexVO" horizontalCenter="0" verticalCenter="30" click="btnSendComplexVO_clickHandler(event)"/>
+	<s:Button id="btnSendComplexVO" label="Send ComplexVO" horizontalCenter="0" verticalCenter="-43" click="btnSendComplexVO_clickHandler(event)"/>
 	
-	<s:Button id="btnGetNotExistingVO" label="Get NotExistingVO" horizontalCenter="0" verticalCenter="60" click="btnGetNotExistingVO_clickHandler(event)"/>
+	<s:Button id="btnGetNotExistingVO" label="Get NotExistingVO" horizontalCenter="0" verticalCenter="-13" click="btnGetNotExistingVO_clickHandler(event)"/>
+
+	<s:Button id="btnStartThread" label="Start Thread" horizontalCenter="-1" verticalCenter="16" click="btnStartThread_clickHandler(event)"/>
+	<s:Button id="btnStopThread" label="Stop Thread" horizontalCenter="0" verticalCenter="45" click="btnStopThread_clickHandler(event)"/>
 	
 </s:WindowedApplication>
