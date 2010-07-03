@@ -24,6 +24,7 @@ public class NativeObject
 	protected Object singletonObject;
 	
 	protected static PrintStream out = System.out;
+	protected static PrintStream err = System.err;
 	protected PrintStream fileOut;
 	
 	public NativeObject(Class<?> sourceClass, Boolean singleton) 
@@ -152,7 +153,7 @@ public class NativeObject
 			message.setCorrelationId(correlationId);
 
 			amf3Output.writeObject(message);
-			System.err.write(baos.toByteArray());
+			err.write(baos.toByteArray());
 
 			amf3Output.close();
 		}
