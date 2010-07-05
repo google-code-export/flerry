@@ -8,6 +8,7 @@
 		<![CDATA[
 			import flash.events.MouseEvent;
 			
+			import mx.collections.ArrayCollection;
 			import mx.controls.Alert;
 			import mx.events.FlexEvent;
 			import mx.rpc.events.FaultEvent;
@@ -83,6 +84,17 @@
 				nativeObject.exit()
 			}
 
+			protected function btnGetLargeObject_clickHandler(event:MouseEvent):void
+			{
+				nativeObject.getLargeObject();
+			}
+
+			protected function getLargeObjectMethod_resultHandler(event:ResultEvent):void
+			{
+				var result:ArrayCollection = event.result as ArrayCollection;
+				trace("Received ", result.length, " objects!");
+			}
+
 		]]>
 	</fx:Script>
 	
@@ -91,6 +103,7 @@
 			<flerry:NativeMethod id="addMethod" name="add" result="addMethod_resultHandler(event)" />
 			<flerry:NativeMethod id="processComplexVOMethod" name="processComplexVO" result="processComplexVOMethod_resultHandler(event)" />
 			<flerry:NativeMethod id="getNotExistingVOMethod" name="getNotExistingVO" result="getNotExistingVOMethod_resultHandler(event)" />
+			<flerry:NativeMethod id="getLargeObjectMethod" name="getLargeObject" result="getLargeObjectMethod_resultHandler(event)" />
 			<flerry:NativeMethod id="startThreadMethod" name="startThread" result="startThreadMethod_resultHandler(event)" />
 		</flerry:NativeObject> 
 	</fx:Declarations>
@@ -106,8 +119,9 @@
 	<s:Button id="btnSendComplexVO" label="Send ComplexVO" horizontalCenter="0" verticalCenter="-43" click="btnSendComplexVO_clickHandler(event)"/>
 	
 	<s:Button id="btnGetNotExistingVO" label="Get NotExistingVO" horizontalCenter="0" verticalCenter="-13" click="btnGetNotExistingVO_clickHandler(event)"/>
+	<s:Button id="btnGetLargeObject" label="Get large object" horizontalCenter="0" verticalCenter="16" click="btnGetLargeObject_clickHandler(event)"/>
 
-	<s:Button id="btnStartThread" label="Start Thread" horizontalCenter="-1" verticalCenter="16" click="btnStartThread_clickHandler(event)"/>
-	<s:Button id="btnStopThread" label="Stop Thread" horizontalCenter="0" verticalCenter="45" click="btnStopThread_clickHandler(event)"/>
+	<s:Button id="btnStartThread" label="Start Thread" horizontalCenter="-1" verticalCenter="45" click="btnStartThread_clickHandler(event)"/>
+	<s:Button id="btnStopThread" label="Stop Thread" horizontalCenter="0" verticalCenter="74" click="btnStopThread_clickHandler(event)"/>
 	
 </s:WindowedApplication>

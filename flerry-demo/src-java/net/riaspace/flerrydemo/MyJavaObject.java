@@ -1,7 +1,9 @@
 package net.riaspace.flerrydemo;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import net.riaspace.flerry.NativeObject;
@@ -24,6 +26,23 @@ public class MyJavaObject {
 		return cvo;
 	}
 
+	public List<ComplexVO> getLargeObject()
+	{
+		List<ComplexVO> result = new ArrayList<ComplexVO>();
+		
+		for(int i = 0; i < 100000; i++)
+		{
+			ComplexVO cvo = new ComplexVO();
+			cvo.setSomeDate(new Date());
+			cvo.setSomeString("Hello Flex!");
+			cvo.setSomeInteger(1);
+
+			result.add(cvo);
+		}
+		
+		return result;
+	}
+	
 	public NotExistingVO getNotExistingVO(String someString) {
 		NotExistingVO result = new NotExistingVO();
 		result.setSomeString("Hello Flex!");
