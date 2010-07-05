@@ -126,9 +126,22 @@ public class NativeObject
 			AcknowledgeMessage message = new AcknowledgeMessage();
 			message.setBody(object);
 			message.setCorrelationId(correlationId);
-
 			amf3Output.writeObject(message);
-			out.write(baos.toByteArray());
+
+			byte[] tempArry = baos.toByteArray();
+			byte[] byteArray = new byte[tempArry.length + 4];
+			
+			int index = 0;
+			for (;index < tempArry.length; ++index) {
+				byteArray[index] = tempArry[index];
+			}
+			
+			//add marker bytes at the end of the array 
+			byteArray[index] = new Byte("99");
+			byteArray[index + 1] = new Byte("99");
+			byteArray[index + 2] = new Byte("99");
+			byteArray[index + 3] = new Byte("99");
+			out.write(byteArray);
 			
 			amf3Output.close();
 			
@@ -173,12 +186,24 @@ public class NativeObject
 			AcknowledgeMessage message = new AcknowledgeMessage();
 			message.setBody(object);
 			message.setCorrelationId(correlationId);
-
 			amf3Output.writeObject(message);
-			out.write(baos.toByteArray());
 			
-			amf3Output.close();
+			byte[] tempArry = baos.toByteArray();
+			byte[] byteArray = new byte[tempArry.length + 4];
 			
+			int index = 0;
+			for (;index < tempArry.length; ++index) {
+				byteArray[index] = tempArry[index];
+			}
+			
+			//add marker bytes at the end of the array 
+			byteArray[index] = new Byte("99");
+			byteArray[index + 1] = new Byte("99");
+			byteArray[index + 2] = new Byte("99");
+			byteArray[index + 3] = new Byte("99");
+			out.write(byteArray);
+			
+			amf3Output.close();			
 		}
 		catch (Exception e)
 		{

@@ -5,8 +5,10 @@ package net.riaspace.flerry
 	import flash.events.Event;
 	import flash.events.EventDispatcher;
 	import flash.events.IEventDispatcher;
+	import flash.events.IOErrorEvent;
 	import flash.events.ProgressEvent;
 	import flash.filesystem.File;
+	import flash.utils.ByteArray;
 	import flash.utils.Dictionary;
 	import flash.utils.Proxy;
 	import flash.utils.flash_proxy;
@@ -52,6 +54,8 @@ package net.riaspace.flerry
 		
 		protected var tokens:Dictionary = new Dictionary();
 		
+		protected var messageBytes:ByteArray = new ByteArray();
+		
 		public function NativeObject(source:String = null, singleton:Boolean = false)
 		{
 			this.source = source;
@@ -66,45 +70,75 @@ package net.riaspace.flerry
 			nativeProcess = new NativeProcess();
 			nativeProcess.addEventListener(ProgressEvent.STANDARD_OUTPUT_DATA, onOutputData);
 			nativeProcess.addEventListener(ProgressEvent.STANDARD_ERROR_DATA, onErrorData);
+			
+			nativeProcess.addEventListener(IOErrorEvent.STANDARD_INPUT_IO_ERROR, ioErrorInputError);
+			nativeProcess.addEventListener(IOErrorEvent.STANDARD_OUTPUT_IO_ERROR, ioErrorInputError);
+			nativeProcess.addEventListener(IOErrorEvent.STANDARD_ERROR_IO_ERROR, ioErrorInputError);
+			
 			nativeProcess.start(startupInfo);
 			
 		}
 		
+		protected function ioErrorInputError(event:IOErrorEvent):void
+		{
+			messageBytes.clear();
+		}
+		
 		protected function onOutputData(event:ProgressEvent):void
 		{
-			var message:AcknowledgeMessage = nativeProcess.standardOutput.readObject() as AcknowledgeMessage;
-			if (message != null)
+			nativeProcess.standardOutput.readBytes(
+				messageBytes, messageBytes.length, nativeProcess.standardOutput.bytesAvailable);
+			
+			if ((messageBytes[messageBytes.length -1] == 99) &&  
+				(messageBytes[messageBytes.length -2] == 99) && 
+				(messageBytes[messageBytes.length -3] == 99) && 
+				(messageBytes[messageBytes.length -4] == 99))
 			{
-				// if message isn't a response to a request then dispatch MessageEvent
-				if(tokens[message.correlationId] == null){
-					var msgEvent:MessageEvent = new MessageEvent(message.correlationId, message.body)					
-					dispatchEvent(msgEvent)
-					return
-				}
+				/* NOTE: messageBytes.readObject will IGNORE the marker bytes automatically, so no need to delete them */
 				
-				var token:AsyncToken = tokens[message.correlationId];
-				delete tokens[message.correlationId];
+				//create object from the collected bytes
+				var message:AcknowledgeMessage = messageBytes.readObject() as AcknowledgeMessage;
 				
-				var resultEvent:ResultEvent = ResultEvent.createEvent(message.body, token, message);
-				
-				token.applyResult(resultEvent);
-				
-				var remotingMessage:RemotingMessage = token.message as RemotingMessage;
-				if (remotingMessage)
+				if (message != null)
 				{
-					var method:NativeMethod = _methods[remotingMessage.operation];
-					if (method.hasEventListener(ResultEvent.RESULT))
-						method.dispatchEvent(resultEvent);					
+					// if message isn't a response to a request then dispatch MessageEvent
+					if(tokens[message.correlationId] == null){
+						var msgEvent:MessageEvent = new MessageEvent(message.correlationId, message.body)					
+						dispatchEvent(msgEvent)
+						return
+					}
+					
+					var token:AsyncToken = tokens[message.correlationId];
+					delete tokens[message.correlationId];
+					
+					var resultEvent:ResultEvent = ResultEvent.createEvent(message.body, token, message);
+					
+					token.applyResult(resultEvent);
+					
+					var remotingMessage:RemotingMessage = token.message as RemotingMessage;
+					if (remotingMessage)
+					{
+						var method:NativeMethod = _methods[remotingMessage.operation];
+						if (method.hasEventListener(ResultEvent.RESULT))
+							method.dispatchEvent(resultEvent);					
+					}
+					
+					if (hasEventListener(ResultEvent.RESULT))
+						dispatchEvent(resultEvent);
 				}
-				
-				if (hasEventListener(ResultEvent.RESULT))
-					dispatchEvent(resultEvent);
-			}
+				messageBytes.clear();
+			} 
 		}
 		
 		protected function onErrorData(event:ProgressEvent):void
 		{
-			var message:ErrorMessage = nativeProcess.standardError.readObject() as ErrorMessage;
+			var buffer:ByteArray = new ByteArray();
+			while (nativeProcess.standardError.bytesAvailable > 0){
+				nativeProcess.standardError.readBytes(buffer, 
+					buffer.length, nativeProcess.standardError.bytesAvailable);
+			}
+			var message:ErrorMessage = buffer.readObject() as ErrorMessage;
+
 			if (message && message.correlationId)
 			{
 				var token:AsyncToken = tokens[message.correlationId];
