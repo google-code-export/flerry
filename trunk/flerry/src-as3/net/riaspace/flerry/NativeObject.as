@@ -76,7 +76,6 @@ package net.riaspace.flerry
 			nativeProcess.addEventListener(IOErrorEvent.STANDARD_ERROR_IO_ERROR, ioErrorInputError);
 			
 			nativeProcess.start(startupInfo);
-			
 		}
 		
 		protected function ioErrorInputError(event:IOErrorEvent):void
@@ -95,24 +94,14 @@ package net.riaspace.flerry
 				(messageBytes[messageBytes.length -4] == 99))
 			{
 				/* NOTE: messageBytes.readObject will IGNORE the marker bytes automatically, so no need to delete them */
-				
 				//create object from the collected bytes
 				var message:AcknowledgeMessage = messageBytes.readObject() as AcknowledgeMessage;
-				
-				if (message != null)
+				if (message && tokens[message.correlationId])
 				{
-					// if message isn't a response to a request then dispatch MessageEvent
-					if(tokens[message.correlationId] == null){
-						var msgEvent:MessageEvent = new MessageEvent(message.correlationId, message.body)					
-						dispatchEvent(msgEvent)
-						return
-					}
-					
 					var token:AsyncToken = tokens[message.correlationId];
 					delete tokens[message.correlationId];
 					
 					var resultEvent:ResultEvent = ResultEvent.createEvent(message.body, token, message);
-					
 					token.applyResult(resultEvent);
 					
 					var remotingMessage:RemotingMessage = token.message as RemotingMessage;
@@ -125,6 +114,12 @@ package net.riaspace.flerry
 					
 					if (hasEventListener(ResultEvent.RESULT))
 						dispatchEvent(resultEvent);
+				}
+				// if message isn't a response to a request then dispatch MessageEvent
+				else if (message)
+				{
+					var msgEvent:MessageEvent = new MessageEvent(message.correlationId, message.body);					
+					dispatchEvent(msgEvent);
 				}
 				messageBytes.clear();
 			} 

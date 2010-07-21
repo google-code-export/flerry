@@ -75,7 +75,7 @@ public class NativeObject
 							}
 	
 							Object result = sourceObject.getClass().getMethod(message.getOperation(), paramsTypes).invoke(sourceObject, params);
-							respond(result, message.getMessageId());
+							sendMessage(result, message.getMessageId());
 						}
 						else
 						{
@@ -115,43 +115,6 @@ public class NativeObject
 		}
 	}
 
-	protected void respond(Object object, String correlationId)
-	{
-		try
-		{
-			Amf3Output amf3Output = new Amf3Output(SerializationContext.getSerializationContext());			
-			ByteArrayOutputStream baos = new ByteArrayOutputStream();
-			amf3Output.setOutputStream(baos);
-			
-			AcknowledgeMessage message = new AcknowledgeMessage();
-			message.setBody(object);
-			message.setCorrelationId(correlationId);
-			amf3Output.writeObject(message);
-
-			byte[] tempArry = baos.toByteArray();
-			byte[] byteArray = new byte[tempArry.length + 4];
-			
-			int index = 0;
-			for (;index < tempArry.length; ++index) {
-				byteArray[index] = tempArry[index];
-			}
-			
-			//add marker bytes at the end of the array 
-			byteArray[index] = new Byte("99");
-			byteArray[index + 1] = new Byte("99");
-			byteArray[index + 2] = new Byte("99");
-			byteArray[index + 3] = new Byte("99");
-			out.write(byteArray);
-			
-			amf3Output.close();
-			
-		}
-		catch (Exception e)
-		{
-			handleException(e, correlationId);
-		}
-	}
-	
 	protected static void handleException(Exception e, String correlationId)
 	{
 		try
