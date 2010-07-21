@@ -7,7 +7,6 @@ package net.riaspace.flerry
 	import flash.events.IEventDispatcher;
 	import flash.events.IOErrorEvent;
 	import flash.events.ProgressEvent;
-	import flash.filesystem.File;
 	import flash.utils.ByteArray;
 	import flash.utils.Dictionary;
 	import flash.utils.Proxy;
@@ -159,19 +158,26 @@ package net.riaspace.flerry
 				throw new Error("NativeProcess error without correlationId: " + message);
 			}
 		}
+		
 		/**
 		 * tries to close remote process
 		 */
-		public function exit():void{
+		public function exit():void
+		{
 			if(nativeProcess)
+			{
 				nativeProcess.exit(true);
+				nativeProcess = null;
+			}
 		}
+		
 		/**
 		 * Subscribe to receive remote messages.
 		 * @param String messageId
 		 * @param Function(event:MessageEvent)
 		 */
-		public function subscribe(messageId:String, handler:Function):void{
+		public function subscribe(messageId:String, handler:Function):void
+		{
 			addEventListener(messageId,handler);
 		}
 		
