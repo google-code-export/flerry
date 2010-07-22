@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<fxpProperties abbreviated="false" authoringTool="Flex Builder" compiles="true" parentProject="7ffb1cf9-64de-4025-9f38-1fb0e29b1179" projectUUID="7ffb1cf9-64de-4025-9f38-1fb0e29b1179" sdkVersion="4.0.0" uuid="8355f3f6-eca1-4b3f-9f54-60b3d6163355" version="4">
+  <projects>
+    <project filename="flerry.fxpl" position="2" projectUUID="189be69d-6e04-4f2f-9801-012d01b34ea3" uuid="8355f3f6-eca1-4b3f-9f54-60b3d6163355"/>
+  </projects>
+  <src/>
+  <swc>
+    <linked location="sdkPlaceHolder" path="sdkPlaceHolder" position="0" uuid="8355f3f6-eca1-4b3f-9f54-60b3d6163355"/>
+    <linked location="/libs" path="/libs" position="1" uuid="8355f3f6-eca1-4b3f-9f54-60b3d6163355"/>
+  </swc>
+  <misc/>
+  <theme/>
+</fxpProperties>
