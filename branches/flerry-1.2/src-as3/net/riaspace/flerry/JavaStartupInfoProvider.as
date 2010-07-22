@@ -43,7 +43,7 @@ package net.riaspace.flerry
 			if (osName.indexOf("win") > -1) 
 			{
 				var findJavaInfo:NativeProcessStartupInfo = new NativeProcessStartupInfo();
-				findJavaInfo.executable = new File("./jars/FindJava.exe");
+				findJavaInfo.executable = File.applicationDirectory.resolvePath("./jars/FindJava.exe");
 				findJavaInfo.workingDirectory = File.applicationDirectory;
 				
 				findJavaProcess = new NativeProcess();
@@ -63,6 +63,7 @@ package net.riaspace.flerry
 			trace(javaPath);
 			
 			var startupInfo:NativeProcessStartupInfo = getStartupInfo(binPath, source, singleton, executablePath);
+			dispatchEvent(new FlerryInitEvent(FlerryInitEvent.INIT_COMPLETE, startupInfo));
 			
 			findJavaProcess.removeEventListener(ProgressEvent.STANDARD_OUTPUT_DATA, findJavaProcess_outputDataHandler);
 			findJavaProcess.exit();
