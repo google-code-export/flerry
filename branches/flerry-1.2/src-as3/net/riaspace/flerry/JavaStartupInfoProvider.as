@@ -29,12 +29,31 @@ package net.riaspace.flerry
 		
 		protected var executablePath:String;
 		
-		public function JavaStartupInfoProvider(binPath:String, source:String, singleton:Boolean, executablePath:String = null)
+		public function JavaStartupInfoProvider(jarsDirectory:String, source:String, singleton:Boolean, executablePath:String = null)
 		{
-			this.binPath = binPath;
+			processClasspath(jarsDirectory);
 			this.source = source;
 			this.singleton = singleton;
 			this.executablePath = executablePath;
+		}
+		
+		/**
+		 * Process the $jarsDir, adding all jars to classpath
+		 */
+		public function processClasspath(jarsDirectory:String):void{
+			var cp:String = Capabilities.os.toLowerCase().indexOf('win') > -1 ? ';':':';
+			
+			var jarsDir:File = File.applicationDirectory.resolvePath(jarsDirectory);
+			var jars:Array = jarsDir.getDirectoryListing();
+			binPath = "";
+			
+			for (var i:int = 0; i < jars.length; i++) {
+				if(classpathTemplate.indexOf(File(jars[i]).name)!= -1){
+					continue
+				}
+				
+				binPath += "./" + jarsDirectory + "/" + File(jars[i]).name + cp;
+			}
 		}
 		
 		public function findJava():void

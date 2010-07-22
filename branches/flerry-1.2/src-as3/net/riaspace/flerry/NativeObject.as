@@ -6,6 +6,8 @@ package net.riaspace.flerry
 	import flash.events.IEventDispatcher;
 	import flash.events.IOErrorEvent;
 	import flash.events.ProgressEvent;
+	import flash.filesystem.File;
+	import flash.system.Capabilities;
 	import flash.utils.ByteArray;
 	import flash.utils.Dictionary;
 	import flash.utils.Proxy;
@@ -40,9 +42,9 @@ package net.riaspace.flerry
 		
 		[Bindable]
 		public var singleton:Boolean = false;
-		
+
 		[Bindable]
-		public var binPath:String;
+		public var jarsDirectory:String = "jars";
 		
 		[Bindable]
 		public var startupInfoProvider:IStartupInfoProvider;
@@ -68,8 +70,9 @@ package net.riaspace.flerry
 		
 		protected function initialize():void
 		{
+			
 			if (!startupInfoProvider)
-				startupInfoProvider = new JavaStartupInfoProvider(binPath, source, singleton);
+				startupInfoProvider = new JavaStartupInfoProvider(jarsDirectory, source, singleton);
 			startupInfoProvider.addEventListener(FlerryInitEvent.INIT_COMPLETE, startupInfoProvider_initCompleteHandler);
 			startupInfoProvider.findJava();
 		}
