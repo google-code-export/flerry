@@ -1,13 +1,17 @@
 package net.riaspace.flerry
 {
+	import flash.desktop.NativeProcess;
 	import flash.desktop.NativeProcessStartupInfo;
 	import flash.events.EventDispatcher;
+	import flash.events.ProgressEvent;
 	import flash.filesystem.File;
 	import flash.system.Capabilities;
 	
 	import mx.utils.StringUtil;
+	
+	import net.riaspace.flerry.events.FlerryInitEvent;
 
-	public class JavaStartupInfoProvider implements IStartupInfoProvider
+	public class JavaStartupInfoProvider extends EventDispatcher implements IStartupInfoProvider
 	{
 		/**
 		 * Default classpath where {0} will be replaced with proper classpath separator and {1} with application classpath property 
@@ -15,7 +19,38 @@ package net.riaspace.flerry
 		 */
 		public var classpathTemplate:String = "./jars/flerry.jar{0}./jars/flex-messaging-core.jar{0}./jars/flex-messaging-common.jar{0}{1}";
 		
-		public function getStartupInfo(binPath:String, source:String, singleton:Boolean, executablePath:String = null):NativeProcessStartupInfo
+		protected var findJavaProcess:NativeProcess;
+		
+		public function init(binPath:String, source:String, singleton:Boolean, executablePath:String = null):void
+		{
+			var osName:String = Capabilities.os.toLowerCase();
+			if (osName.indexOf("win") > -1) 
+			{
+				var findJavaInfo:NativeProcessStartupInfo = new NativeProcessStartupInfo();
+				findJavaInfo.executable = new File("./jars/FindJava.exe");
+				findJavaInfo.workingDirectory = File.applicationDirectory;
+				
+				findJavaProcess = new NativeProcess();
+				findJavaProcess.addEventListener(ProgressEvent.STANDARD_OUTPUT_DATA, findJavaProcess_outputDataHandler);
+				findJavaProcess.start(findJavaInfo);
+			} 
+			else
+			{
+				var startupInfo:NativeProcessStartupInfo = getStartupInfo(binPath, source, singleton, executablePath);
+				dispatchEvent(new FlerryInitEvent(FlerryInitEvent.INIT_COMPLETE, startupInfo));
+			}
+		}
+
+		private function findJavaProcess_outputDataHandler(event:ProgressEvent):void
+		{
+			trace(findJavaProcess.standardOutput.readUTFBytes(findJavaProcess.standardOutput.bytesAvailable));
+			
+			findJavaProcess.removeEventListener(ProgressEvent.STANDARD_OUTPUT_DATA, findJavaProcess_outputDataHandler);
+			findJavaProcess.exit();
+			findJavaProcess = null;
+		}
+		
+		protected function getStartupInfo(binPath:String, source:String, singleton:Boolean, executablePath:String = null):NativeProcessStartupInfo
 		{
 			var executable:File = executableFile;
 			if (executable != null)
