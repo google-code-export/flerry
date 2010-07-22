@@ -1,7 +1,6 @@
 package net.riaspace.flerry
 {
 	import flash.desktop.NativeProcess;
-	import flash.desktop.NativeProcessStartupInfo;
 	import flash.events.Event;
 	import flash.events.EventDispatcher;
 	import flash.events.IEventDispatcher;
@@ -20,6 +19,9 @@ package net.riaspace.flerry
 	import mx.rpc.AsyncToken;
 	import mx.rpc.events.FaultEvent;
 	import mx.rpc.events.ResultEvent;
+	
+	import net.riaspace.flerry.events.FlerryInitEvent;
+	import net.riaspace.flerry.events.MessageEvent;
 	
 	use namespace flash_proxy;
 	use namespace mx_internal;
@@ -47,6 +49,8 @@ package net.riaspace.flerry
 		
 		protected var _methods:Array = new Array();
 		
+		protected var messagesBuffer:Vector.<RemotingMessage> = new Vector.<RemotingMessage>();
+		
 		protected var eventDispatcher:IEventDispatcher;
 		
 		protected var nativeProcess:NativeProcess;
@@ -64,7 +68,13 @@ package net.riaspace.flerry
 		
 		protected function initialize():void
 		{
-			var startupInfo:NativeProcessStartupInfo = startupInfoProvider.getStartupInfo(binPath, source, singleton);
+			startupInfoProvider.addEventListener(FlerryInitEvent.INIT_COMPLETE, startupInfoProvider_initCompleteHandler);
+			startupInfoProvider.init(binPath, source, singleton);
+		}
+
+		private function startupInfoProvider_initCompleteHandler(event:FlerryInitEvent):void
+		{
+			event.stopImmediatePropagation();
 			
 			nativeProcess = new NativeProcess();
 			nativeProcess.addEventListener(ProgressEvent.STANDARD_OUTPUT_DATA, onOutputData);
@@ -74,7 +84,14 @@ package net.riaspace.flerry
 			nativeProcess.addEventListener(IOErrorEvent.STANDARD_OUTPUT_IO_ERROR, ioErrorInputError);
 			nativeProcess.addEventListener(IOErrorEvent.STANDARD_ERROR_IO_ERROR, ioErrorInputError);
 			
-			nativeProcess.start(startupInfo);
+			nativeProcess.start(event.startupInfo);
+			
+			// Invoking buffered native calls
+			messagesBuffer.reverse();
+			while (messagesBuffer.length > 0)
+			{
+				writeMessageObject(messagesBuffer.pop());
+			}
 		}
 		
 		protected function ioErrorInputError(event:IOErrorEvent):void
@@ -127,12 +144,12 @@ package net.riaspace.flerry
 		protected function onErrorData(event:ProgressEvent):void
 		{
 			var buffer:ByteArray = new ByteArray();
-			while (nativeProcess.standardError.bytesAvailable > 0){
-				nativeProcess.standardError.readBytes(buffer, 
-					buffer.length, nativeProcess.standardError.bytesAvailable);
+			while (nativeProcess.standardError.bytesAvailable > 0)
+			{
+				nativeProcess.standardError.readBytes(buffer, buffer.length, nativeProcess.standardError.bytesAvailable);
 			}
+			
 			var message:ErrorMessage = buffer.readObject() as ErrorMessage;
-
 			if (message && message.correlationId)
 			{
 				var token:AsyncToken = tokens[message.correlationId];
@@ -178,7 +195,10 @@ package net.riaspace.flerry
 		 */
 		public function subscribe(messageId:String, handler:Function):void
 		{
-			addEventListener(messageId,handler);
+			if (nativeProcess)
+				initialize();
+			
+			addEventListener(messageId, handler);
 		}
 		
 		override flash_proxy function callProperty(methodName:*, ... args):* 
@@ -192,28 +212,35 @@ package net.riaspace.flerry
 			}
 			return call(method, args);
 		}
-		
+			
 		protected function call(method:NativeMethod, ... args):AsyncToken
 		{
-			if (!nativeProcess)
-				initialize();
-			
 			var message:RemotingMessage = new RemotingMessage();
 			message.operation = method.name;
 			message.source = source;
 			message.headers = {SINGLETON_HEADER:singleton};
-			
 			if (args.length == 1)
-			{
 				message.body = args[0];
-			}
 			
-			nativeProcess.standardInput.writeObject(message);
+			if (!nativeProcess)
+			{
+				messagesBuffer.push(message);
+				initialize();
+			}
+			else
+			{
+				writeMessageObject(message);
+			}
 			
 			var token:AsyncToken = new AsyncToken(message);
 			tokens[message.messageId] = token;
 			
 			return token;
+		}
+		
+		protected function writeMessageObject(message:RemotingMessage):void
+		{
+			nativeProcess.standardInput.writeObject(message);
 		}
 		
 		[Bindable]
