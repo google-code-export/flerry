@@ -21,7 +21,23 @@ package net.riaspace.flerry
 		
 		protected var findJavaProcess:NativeProcess;
 		
-		public function init(binPath:String, source:String, singleton:Boolean, executablePath:String = null):void
+		protected var binPath:String;
+		
+		protected var source:String;
+		
+		protected var singleton:Boolean;
+		
+		protected var executablePath:String;
+		
+		public function JavaStartupInfoProvider(binPath:String, source:String, singleton:Boolean, executablePath:String = null)
+		{
+			this.binPath = binPath;
+			this.source = source;
+			this.singleton = singleton;
+			this.executablePath = executablePath;
+		}
+		
+		public function findJava():void
 		{
 			var osName:String = Capabilities.os.toLowerCase();
 			if (osName.indexOf("win") > -1) 
@@ -41,9 +57,12 @@ package net.riaspace.flerry
 			}
 		}
 
-		private function findJavaProcess_outputDataHandler(event:ProgressEvent):void
+		protected function findJavaProcess_outputDataHandler(event:ProgressEvent):void
 		{
-			trace(findJavaProcess.standardOutput.readUTFBytes(findJavaProcess.standardOutput.bytesAvailable));
+			var javaPath:String = findJavaProcess.standardOutput.readUTFBytes(findJavaProcess.standardOutput.bytesAvailable);
+			trace(javaPath);
+			
+			var startupInfo:NativeProcessStartupInfo = getStartupInfo(binPath, source, singleton, executablePath);
 			
 			findJavaProcess.removeEventListener(ProgressEvent.STANDARD_OUTPUT_DATA, findJavaProcess_outputDataHandler);
 			findJavaProcess.exit();

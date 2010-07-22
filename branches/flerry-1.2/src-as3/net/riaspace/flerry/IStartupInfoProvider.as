@@ -5,10 +5,9 @@ package net.riaspace.flerry
 
 	[Event(name="result", type="net.riaspace.flerry.events.FlerryInitEvent")]
 	[Event(name="fault", type="net.riaspace.flerry.events.FlerryInitEvent")]
-	
 	public interface IStartupInfoProvider extends IEventDispatcher
 	{
-		function init(binPath:String, source:String, singleton:Boolean, executablePath:String = null):void;
+		function findJava():void;
 	}
 	
 }

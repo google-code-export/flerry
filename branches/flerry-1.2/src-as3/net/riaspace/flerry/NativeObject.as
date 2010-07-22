@@ -45,7 +45,7 @@ package net.riaspace.flerry
 		public var binPath:String;
 		
 		[Bindable]
-		public var startupInfoProvider:IStartupInfoProvider = new JavaStartupInfoProvider();
+		public var startupInfoProvider:IStartupInfoProvider;
 		
 		protected var _methods:Array = new Array();
 		
@@ -68,8 +68,10 @@ package net.riaspace.flerry
 		
 		protected function initialize():void
 		{
+			if (!startupInfoProvider)
+				startupInfoProvider = new JavaStartupInfoProvider(binPath, source, singleton);
 			startupInfoProvider.addEventListener(FlerryInitEvent.INIT_COMPLETE, startupInfoProvider_initCompleteHandler);
-			startupInfoProvider.init(binPath, source, singleton);
+			startupInfoProvider.findJava();
 		}
 
 		private function startupInfoProvider_initCompleteHandler(event:FlerryInitEvent):void
