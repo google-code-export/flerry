@@ -116,8 +116,8 @@ package net.riaspace.flerry
 
 		private function findJavaProcess_outputDataHandler(event:ProgressEvent):void
 		{
-			var java:File = new File(findJavaProcess.standardOutput.readUTFBytes(findJavaProcess.standardOutput.bytesAvailable));
-			handleResultEvent(java);	
+			var javaDir:String = StringUtil.trim(findJavaProcess.standardOutput.readUTFBytes(findJavaProcess.standardOutput.bytesAvailable));
+			handleResultEvent(new File(javaDir + "\\bin\\javaw.exe"));	
 			
 			if (findJavaProcess.running)
 				findJavaProcess.exit();
