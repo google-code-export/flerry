@@ -20,6 +20,7 @@
     	<mkdir dir="build" />
 		<jar destfile="build/flerry.jar">
 			<fileset dir="bin-java" />
+	<!--
 			<fileset dir="libs">
 				<include name="amf-serializer-1.0.0.jar" />
 				<include name="log4j.jar" />
@@ -28,9 +29,12 @@
 			<manifest>
 				<attribute name="Class-Path" value="amf-serializer-1.0.0.jar log4j.jar" />
 			</manifest>
+	-->
 		</jar>
 		
-		<copyfile dest="build/FindJava.exe" src="libs/FindJava.exe"/>		
+		<copy todir="build" >
+			<fileset dir="libs" />
+		</copy>		
     </target>
 
     <!-- - - - - - - - - - - - - - - - - - 
