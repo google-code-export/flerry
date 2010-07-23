@@ -1,4 +1,4 @@
-package net.riaspace.flerry
+package net.riaspace.flerry.events
 {
 	import flash.events.Event;
 	

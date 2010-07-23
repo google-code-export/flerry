@@ -6,9 +6,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 
-import flex.messaging.io.SerializationContext;
-import flex.messaging.io.amf.Amf3Input;
-import flex.messaging.io.amf.Amf3Output;
+import com.exadel.flamingo.flex.messaging.amf.io.AMF3Deserializer;
+import com.exadel.flamingo.flex.messaging.amf.io.AMF3Serializer;
+
 import flex.messaging.messages.AcknowledgeMessage;
 import flex.messaging.messages.ErrorMessage;
 import flex.messaging.messages.RemotingMessage;
@@ -42,8 +42,7 @@ public class NativeObject
 	
 	public void init()
 	{
-		Amf3Input amf3Input = new Amf3Input(SerializationContext.getSerializationContext());
-		amf3Input.setInputStream(System.in);
+		AMF3Deserializer amf3Input = new AMF3Deserializer(System.in);
 		try
 		{
 			Object object;
@@ -119,13 +118,13 @@ public class NativeObject
 	{
 		try
 		{
-			Amf3Output amf3Output = new Amf3Output(SerializationContext.getSerializationContext());			
 			ByteArrayOutputStream baos = new ByteArrayOutputStream();
-			amf3Output.setOutputStream(baos);
+			AMF3Serializer amf3Output = new AMF3Serializer(baos);
 			
 			ErrorMessage message = new ErrorMessage();
-			message.faultString = e.getMessage();
-			message.faultDetail = e.toString();
+			
+			message.setFaultString(e.getMessage());
+			message.setFaultDetail(e.toString());
 			message.setCorrelationId(correlationId);
 
 			amf3Output.writeObject(message);
@@ -142,9 +141,8 @@ public class NativeObject
 	public static void sendMessage(Object object, String correlationId){
 		try
 		{
-			Amf3Output amf3Output = new Amf3Output(SerializationContext.getSerializationContext());			
 			ByteArrayOutputStream baos = new ByteArrayOutputStream();
-			amf3Output.setOutputStream(baos);
+			AMF3Serializer amf3Output = new AMF3Serializer(baos);
 			
 			AcknowledgeMessage message = new AcknowledgeMessage();
 			message.setBody(object);

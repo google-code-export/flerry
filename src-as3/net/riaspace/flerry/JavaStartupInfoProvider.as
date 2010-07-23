@@ -21,13 +21,45 @@ package net.riaspace.flerry
 		
 		protected var findJavaProcess:NativeProcess;
 		
-		public function init(binPath:String, source:String, singleton:Boolean, executablePath:String = null):void
+		protected var binPath:String;
+		
+		protected var source:String;
+		
+		protected var singleton:Boolean;
+		
+		public function JavaStartupInfoProvider(jarsDirectory:String, source:String, singleton:Boolean)
+		{
+			processClasspath(jarsDirectory);
+			this.source = source;
+			this.singleton = singleton;
+		}
+		
+		/**
+		 * Process the $jarsDir, adding all jars to classpath
+		 */
+		public function processClasspath(jarsDirectory:String):void{
+			var cp:String = Capabilities.os.toLowerCase().indexOf('win') > -1 ? ';':':';
+			
+			var jarsDir:File = File.applicationDirectory.resolvePath(jarsDirectory);
+			var jars:Array = jarsDir.getDirectoryListing();
+			binPath = "";
+			
+			for (var i:int = 0; i < jars.length; i++) {
+				if(classpathTemplate.indexOf(File(jars[i]).name)!= -1){
+					continue
+				}
+				
+				binPath += "./" + jarsDirectory + "/" + File(jars[i]).name + cp;
+			}
+		}
+		
+		public function findJava():void
 		{
 			var osName:String = Capabilities.os.toLowerCase();
 			if (osName.indexOf("win") > -1) 
 			{
 				var findJavaInfo:NativeProcessStartupInfo = new NativeProcessStartupInfo();
-				findJavaInfo.executable = new File("./jars/FindJava.exe");
+				findJavaInfo.executable = File.applicationDirectory.resolvePath("./jars/FindJava.exe");
 				findJavaInfo.workingDirectory = File.applicationDirectory;
 				
 				findJavaProcess = new NativeProcess();
@@ -36,21 +68,23 @@ package net.riaspace.flerry
 			} 
 			else
 			{
-				var startupInfo:NativeProcessStartupInfo = getStartupInfo(binPath, source, singleton, executablePath);
-				dispatchEvent(new FlerryInitEvent(FlerryInitEvent.INIT_COMPLETE, startupInfo));
+				dispatchEvent(new FlerryInitEvent(FlerryInitEvent.INIT_COMPLETE, getStartupInfo()));
 			}
 		}
 
-		private function findJavaProcess_outputDataHandler(event:ProgressEvent):void
+		protected function findJavaProcess_outputDataHandler(event:ProgressEvent):void
 		{
-			trace(findJavaProcess.standardOutput.readUTFBytes(findJavaProcess.standardOutput.bytesAvailable));
+			var javaPath:String = findJavaProcess.standardOutput.readUTFBytes(findJavaProcess.standardOutput.bytesAvailable);
+			// TODO: dispatch event if not found
+			
+			dispatchEvent(new FlerryInitEvent(FlerryInitEvent.INIT_COMPLETE, getStartupInfo()));
 			
 			findJavaProcess.removeEventListener(ProgressEvent.STANDARD_OUTPUT_DATA, findJavaProcess_outputDataHandler);
 			findJavaProcess.exit();
 			findJavaProcess = null;
 		}
 		
-		protected function getStartupInfo(binPath:String, source:String, singleton:Boolean, executablePath:String = null):NativeProcessStartupInfo
+		protected function getStartupInfo():NativeProcessStartupInfo
 		{
 			var executable:File = executableFile;
 			if (executable != null)
@@ -90,35 +124,7 @@ package net.riaspace.flerry
 			var result:File;
 			var osName:String = Capabilities.os.toLowerCase();
 			
-			if (osName.indexOf("win") > -1) 
-			{
-				var programFiles:File = new File("C:\\Program Files\\");
-				if (programFiles.exists)
-				{
-					for each(var appDir:File in programFiles.getDirectoryListing())
-					{
-						if (appDir.name.toLowerCase().indexOf("java") > -1 && appDir.isDirectory)
-						{
-							for each(var subDir:File in appDir.getDirectoryListing())
-							{
-								var subDirName:String = subDir.name.toLowerCase();
-								if (subDirName.indexOf("jdk") > -1 || subDirName.indexOf("jre") > -1)
-								{
-									var javaw:File = subDir.resolvePath("bin").resolvePath("javaw.exe");
-									if (javaw.exists)
-									{
-										result = javaw;
-										break;
-									}
-								}
-							}
-							if (result != null)
-								break;
-						}
-					}
-				}
-			} 
-			else if (osName.indexOf("mac") > -1)
+			if (osName.indexOf("mac") > -1)
 			{
 				result = getJavaOnUnix("/System/Library/Frameworks/JavaVM.framework/Versions/Current/Commands/java");
 			} 
