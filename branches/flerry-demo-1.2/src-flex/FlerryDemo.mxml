@@ -2,8 +2,9 @@
 <s:WindowedApplication xmlns:fx="http://ns.adobe.com/mxml/2009" 
 			   xmlns:s="library://ns.adobe.com/flex/spark" 
 			   xmlns:mx="library://ns.adobe.com/flex/mx" minWidth="300" minHeight="300" xmlns:flerry="net.riaspace.flerry.*"
-			   creationComplete="windowedapplication1_creationCompleteHandler(event)"
-			    viewSourceURL="srcview/index.html">
+			   creationComplete="windowedapplication_creationCompleteHandler(event)"
+			   viewSourceURL="srcview/index.html">
+	
 	<fx:Script>
 		<![CDATA[
 			import mx.collections.ArrayCollection;
@@ -66,10 +67,10 @@
 				trace(event.result);
 			}
 
-			protected function windowedapplication1_creationCompleteHandler(event:FlexEvent):void
+			protected function windowedapplication_creationCompleteHandler(event:FlexEvent):void
 			{
 				// Subscribe to receive remote messages.
-				nativeObject.subscribe("sendMsg",messageHandler);
+				nativeObject.subscribe("sendMsg", messageHandler);
 			}
 			
 			protected function messageHandler(event:MessageEvent):void
