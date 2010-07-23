@@ -2,12 +2,11 @@
 <s:WindowedApplication xmlns:fx="http://ns.adobe.com/mxml/2009" 
 			   xmlns:s="library://ns.adobe.com/flex/spark" 
 			   xmlns:mx="library://ns.adobe.com/flex/mx" minWidth="300" minHeight="300" xmlns:flerry="net.riaspace.flerry.*"
-			   creationComplete="windowedapplication1_creationCompleteHandler(event)"
-			    viewSourceURL="srcview/index.html">
+			   creationComplete="windowedapplication_creationCompleteHandler(event)"
+			   viewSourceURL="srcview/index.html">
+	
 	<fx:Script>
 		<![CDATA[
-			import flash.events.MouseEvent;
-			
 			import mx.collections.ArrayCollection;
 			import mx.controls.Alert;
 			import mx.events.FlexEvent;
@@ -15,7 +14,7 @@
 			import mx.rpc.events.ResultEvent;
 			import mx.utils.ObjectUtil;
 			
-			import net.riaspace.flerry.MessageEvent;
+			import net.riaspace.flerry.events.MessageEvent;
 			import net.riaspace.flerrydemo.models.ComplexVO;
 
 			protected function nativeObject_faultHandler(event:FaultEvent):void
@@ -68,10 +67,10 @@
 				trace(event.result);
 			}
 
-			protected function windowedapplication1_creationCompleteHandler(event:FlexEvent):void
+			protected function windowedapplication_creationCompleteHandler(event:FlexEvent):void
 			{
 				// Subscribe to receive remote messages.
-				nativeObject.subscribe("sendMsg",messageHandler);
+				nativeObject.subscribe("sendMsg", messageHandler);
 			}
 			
 			protected function messageHandler(event:MessageEvent):void
@@ -99,7 +98,7 @@
 	</fx:Script>
 	
 	<fx:Declarations>
-		<flerry:NativeObject id="nativeObject" singleton="true" binPath="./jars/flerry-demo.jar" source="net.riaspace.flerrydemo.MyJavaObject" fault="nativeObject_faultHandler(event)">
+		<flerry:NativeObject id="nativeObject" singleton="true" source="net.riaspace.flerrydemo.MyJavaObject" fault="nativeObject_faultHandler(event)">
 			<flerry:NativeMethod id="addMethod" name="add" result="addMethod_resultHandler(event)" />
 			<flerry:NativeMethod id="processComplexVOMethod" name="processComplexVO" result="processComplexVOMethod_resultHandler(event)" />
 			<flerry:NativeMethod id="getNotExistingVOMethod" name="getNotExistingVO" result="getNotExistingVOMethod_resultHandler(event)" />
