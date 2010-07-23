@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- ====================================================================== 
+     Jul 23, 2010 4:46:02 PM                                                        
+
+     flerry    
+     flerry - Java-Flex bridge for AIR 2.0
+                   
+     pwalczys                                                                
+     ====================================================================== -->
+<project name="project" default="default">
+	
+    <description>
+            description
+    </description>
+
+    <!-- ================================= 
+          target: default              
+         ================================= -->
+    <target name="default" depends="compile" description="description">
+    	<mkdir dir="build" />
+		<jar destfile="build/flerry.jar">
+			<fileset dir="bin-java" />
+			<fileset dir="libs">
+				<include name="amf-serializer-1.0.0.jar" />
+				<include name="log4j.jar" />
+			</fileset>
+	
+			<manifest>
+				<attribute name="Class-Path" value="amf-serializer-1.0.0.jar log4j.jar" />
+			</manifest>
+		</jar>
+		
+		<copyfile dest="build/FindJava.exe" src="libs/FindJava.exe"/>		
+    </target>
+
+    <!-- - - - - - - - - - - - - - - - - - 
+          target: compile                      
+         - - - - - - - - - - - - - - - - - -->
+    <target name="compile">
+    	 <javac srcdir="src-java" 
+    	         destdir="bin-java"
+    	         classpath="libs/amf-serializer-1.0.0.jar:libs/log4j.jar"
+    	  />
+    </target>
+
+</project>

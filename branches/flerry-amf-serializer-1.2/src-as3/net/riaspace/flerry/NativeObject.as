@@ -43,7 +43,7 @@ package net.riaspace.flerry
 		public var singleton:Boolean = false;
 
 		[Bindable]
-		public var jarsDirectory:String = "jars";
+		public var libsDirectory:String = "libs";
 		
 		[Bindable]
 		public var startupInfoProvider:IStartupInfoProvider;
@@ -70,7 +70,7 @@ package net.riaspace.flerry
 		protected function initialize():void
 		{
 			if (!startupInfoProvider)
-				startupInfoProvider = new BaseStartupInfoProvider(jarsDirectory, source, singleton);
+				startupInfoProvider = new BaseStartupInfoProvider(libsDirectory, source, singleton);
 			startupInfoProvider.addEventListener(FlerryInitEvent.INIT_COMPLETE, startupInfoProvider_initCompleteHandler);
 			startupInfoProvider.addEventListener(FlerryInitEvent.INIT_ERROR, startupInfoProvider_initErrorHandler);
 			startupInfoProvider.findJava();
