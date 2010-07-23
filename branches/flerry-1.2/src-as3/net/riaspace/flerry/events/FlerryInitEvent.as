@@ -12,9 +12,12 @@ package net.riaspace.flerry.events
 		
 		public var startupInfo:NativeProcessStartupInfo;
 		
-		public function FlerryInitEvent(type:String, startupInfo:NativeProcessStartupInfo = null, bubbles:Boolean=false, cancelable:Boolean=false)
+		public var errorMessage:String;
+		
+		public function FlerryInitEvent(type:String, startupInfo:NativeProcessStartupInfo = null, errorMessage:String = null, bubbles:Boolean=false, cancelable:Boolean=false)
 		{
 			this.startupInfo = startupInfo;
+			this.errorMessage = errorMessage;
 			super(type, bubbles, cancelable);
 		}
 	}

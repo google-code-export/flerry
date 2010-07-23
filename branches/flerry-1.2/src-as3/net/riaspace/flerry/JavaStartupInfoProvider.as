@@ -27,14 +27,11 @@ package net.riaspace.flerry
 		
 		protected var singleton:Boolean;
 		
-		protected var executablePath:String;
-		
-		public function JavaStartupInfoProvider(jarsDirectory:String, source:String, singleton:Boolean, executablePath:String = null)
+		public function JavaStartupInfoProvider(jarsDirectory:String, source:String, singleton:Boolean)
 		{
 			processClasspath(jarsDirectory);
 			this.source = source;
 			this.singleton = singleton;
-			this.executablePath = executablePath;
 		}
 		
 		/**
@@ -71,25 +68,23 @@ package net.riaspace.flerry
 			} 
 			else
 			{
-				var startupInfo:NativeProcessStartupInfo = getStartupInfo(binPath, source, singleton, executablePath);
-				dispatchEvent(new FlerryInitEvent(FlerryInitEvent.INIT_COMPLETE, startupInfo));
+				dispatchEvent(new FlerryInitEvent(FlerryInitEvent.INIT_COMPLETE, getStartupInfo()));
 			}
 		}
 
 		protected function findJavaProcess_outputDataHandler(event:ProgressEvent):void
 		{
 			var javaPath:String = findJavaProcess.standardOutput.readUTFBytes(findJavaProcess.standardOutput.bytesAvailable);
-			trace(javaPath);
+			// TODO: dispatch event if not found
 			
-			var startupInfo:NativeProcessStartupInfo = getStartupInfo(binPath, source, singleton, executablePath);
-			dispatchEvent(new FlerryInitEvent(FlerryInitEvent.INIT_COMPLETE, startupInfo));
+			dispatchEvent(new FlerryInitEvent(FlerryInitEvent.INIT_COMPLETE, getStartupInfo()));
 			
 			findJavaProcess.removeEventListener(ProgressEvent.STANDARD_OUTPUT_DATA, findJavaProcess_outputDataHandler);
 			findJavaProcess.exit();
 			findJavaProcess = null;
 		}
 		
-		protected function getStartupInfo(binPath:String, source:String, singleton:Boolean, executablePath:String = null):NativeProcessStartupInfo
+		protected function getStartupInfo():NativeProcessStartupInfo
 		{
 			var executable:File = executableFile;
 			if (executable != null)
@@ -129,35 +124,7 @@ package net.riaspace.flerry
 			var result:File;
 			var osName:String = Capabilities.os.toLowerCase();
 			
-			if (osName.indexOf("win") > -1) 
-			{
-				var programFiles:File = new File("C:\\Program Files\\");
-				if (programFiles.exists)
-				{
-					for each(var appDir:File in programFiles.getDirectoryListing())
-					{
-						if (appDir.name.toLowerCase().indexOf("java") > -1 && appDir.isDirectory)
-						{
-							for each(var subDir:File in appDir.getDirectoryListing())
-							{
-								var subDirName:String = subDir.name.toLowerCase();
-								if (subDirName.indexOf("jdk") > -1 || subDirName.indexOf("jre") > -1)
-								{
-									var javaw:File = subDir.resolvePath("bin").resolvePath("javaw.exe");
-									if (javaw.exists)
-									{
-										result = javaw;
-										break;
-									}
-								}
-							}
-							if (result != null)
-								break;
-						}
-					}
-				}
-			} 
-			else if (osName.indexOf("mac") > -1)
+			if (osName.indexOf("mac") > -1)
 			{
 				result = getJavaOnUnix("/System/Library/Frameworks/JavaVM.framework/Versions/Current/Commands/java");
 			} 

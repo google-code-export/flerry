@@ -6,8 +6,6 @@ package net.riaspace.flerry
 	import flash.events.IEventDispatcher;
 	import flash.events.IOErrorEvent;
 	import flash.events.ProgressEvent;
-	import flash.filesystem.File;
-	import flash.system.Capabilities;
 	import flash.utils.ByteArray;
 	import flash.utils.Dictionary;
 	import flash.utils.Proxy;
@@ -19,6 +17,7 @@ package net.riaspace.flerry
 	import mx.messaging.messages.ErrorMessage;
 	import mx.messaging.messages.RemotingMessage;
 	import mx.rpc.AsyncToken;
+	import mx.rpc.Fault;
 	import mx.rpc.events.FaultEvent;
 	import mx.rpc.events.ResultEvent;
 	
@@ -70,14 +69,22 @@ package net.riaspace.flerry
 		
 		protected function initialize():void
 		{
-			
 			if (!startupInfoProvider)
-				startupInfoProvider = new JavaStartupInfoProvider(jarsDirectory, source, singleton);
+				startupInfoProvider = new BaseStartupInfoProvider(jarsDirectory, source, singleton);
 			startupInfoProvider.addEventListener(FlerryInitEvent.INIT_COMPLETE, startupInfoProvider_initCompleteHandler);
+			startupInfoProvider.addEventListener(FlerryInitEvent.INIT_ERROR, startupInfoProvider_initErrorHandler);
 			startupInfoProvider.findJava();
 		}
 
-		private function startupInfoProvider_initCompleteHandler(event:FlerryInitEvent):void
+		protected function startupInfoProvider_initErrorHandler(event:FlerryInitEvent):void
+		{
+			if (hasEventListener(FaultEvent.FAULT))
+				dispatchEvent(FaultEvent.createEvent(new Fault("001", event.errorMessage, event.errorMessage)));
+			else
+				trace("Error initilizing NativeProcessStartupInfo:", event.errorMessage);
+		}
+
+		protected function startupInfoProvider_initCompleteHandler(event:FlerryInitEvent):void
 		{
 			event.stopImmediatePropagation();
 			
@@ -204,6 +211,11 @@ package net.riaspace.flerry
 				initialize();
 			
 			addEventListener(messageId, handler);
+		}
+		
+		override flash_proxy function setProperty(name:*, value:*):void
+		{
+			trace("setProperty called! " + name);
 		}
 		
 		override flash_proxy function callProperty(methodName:*, ... args):* 
