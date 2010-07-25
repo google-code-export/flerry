@@ -257,7 +257,19 @@ package net.riaspace.flerry
 		
 		protected function writeMessageObject(message:RemotingMessage):void
 		{
-			nativeProcess.standardInput.writeObject(message);
+			var bytes:ByteArray = new ByteArray;
+			bytes.writeObject(message);
+			// add flags to identify the end of message			
+			bytes.writeByte(99);
+			bytes.writeByte(99);
+			bytes.writeByte(99);
+			bytes.writeByte(99);
+			
+			var packetSize:int = 256;
+			// send the message in chunks of size {packetSize}
+			for(var i:int = 0; i < Math.ceil(bytes.length / packetSize) ; i++){
+				nativeProcess.standardInput.writeBytes(bytes,i * packetSize, Math.min(bytes.length - (i * packetSize),packetSize) ); 
+			}
 		}
 		
 		[Bindable]
