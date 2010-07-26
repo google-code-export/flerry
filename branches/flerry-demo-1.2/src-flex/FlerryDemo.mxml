@@ -10,11 +10,11 @@
 			import mx.collections.ArrayCollection;
 			import mx.controls.Alert;
 			import mx.events.FlexEvent;
+			import mx.messaging.events.MessageEvent;
 			import mx.rpc.events.FaultEvent;
 			import mx.rpc.events.ResultEvent;
 			import mx.utils.ObjectUtil;
 			
-			import net.riaspace.flerry.events.MessageEvent;
 			import net.riaspace.flerrydemo.models.ComplexVO;
 
 			protected function nativeObject_faultHandler(event:FaultEvent):void
@@ -75,7 +75,7 @@
 			
 			protected function messageHandler(event:MessageEvent):void
 			{
-				trace(event.data["count"]);
+				trace(event.message.body["count"]);
 			}
 
 			protected function btnStopThread_clickHandler(event:MouseEvent):void
