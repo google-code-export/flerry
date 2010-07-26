@@ -16,15 +16,9 @@ package net.riaspace.flerry
 	public class BaseStartupInfoProvider extends EventDispatcher implements IStartupInfoProvider
 	{
 	
-		/**
-		 * Default classpath where {0} will be replaced with proper classpath separator and {1} with application classpath property 
-		 * "../flerry.jar{0}../libs/flex-messaging-core.jar{0}../libs/flex-messaging-common.jar"
-		 */
-		public var classpathTemplate:String = "./jars/flerry.jar{0}./jars/flex-messaging-core.jar{0}./jars/flex-messaging-common.jar{0}{1}";
+		protected var classpath:String = "./libs/flerry.jar";
 		
-		public var jarsDirectory:String;
-		
-		public var binPath:String;
+		public var libsDirectory:String;
 		
 		public var source:String;
 		
@@ -34,11 +28,11 @@ package net.riaspace.flerry
 		
 		private var os:String;
 		
-		public function BaseStartupInfoProvider(jarsDirectory:String = null, source:String = null, singleton:Boolean = false)
+		public function BaseStartupInfoProvider(libsDirectory:String = null, source:String = null, singleton:Boolean = false)
 		{
 			this.os = Capabilities.os.toLowerCase();
 			
-			this.jarsDirectory = jarsDirectory;
+			this.libsDirectory = libsDirectory;
 			this.source = source;
 			this.singleton = singleton;
 			
@@ -50,21 +44,24 @@ package net.riaspace.flerry
 		 */
 		protected function processClasspath():void
 		{
-			var cp:String = os.indexOf('win') > -1 ? ';':':';
+			var separator:String = os.indexOf('win') > -1 ? ';':':';
 			
-			var jarsDir:File = File.applicationDirectory.resolvePath(jarsDirectory);
+			var jarsDir:File = File.applicationDirectory.resolvePath(libsDirectory);
 			var jars:Array = jarsDir.getDirectoryListing();
-			binPath = "";
+			
+			classpath = classpath + separator;
 			
 			for (var i:int = 0; i < jars.length; i++) 
 			{
-				if(classpathTemplate.indexOf(File(jars[i]).name) != -1)
+				if(classpath.indexOf(File(jars[i]).name) != -1)
 				{
 					continue;
 				}
 				
-				binPath += "./" + jarsDirectory + "/" + File(jars[i]).name + cp;
+				classpath += "./" + libsDirectory + "/" + File(jars[i]).name + separator;
 			}
+			
+			classpath += "./classes";
 		}
 		
 		public function findJava():void
@@ -85,7 +82,7 @@ package net.riaspace.flerry
 			try
 			{
 				var findJavaInfo:NativeProcessStartupInfo = new NativeProcessStartupInfo();
-				findJavaInfo.executable = File.applicationDirectory.resolvePath(jarsDirectory).resolvePath("FindJava.exe");
+				findJavaInfo.executable = File.applicationDirectory.resolvePath(libsDirectory).resolvePath("FindJava.exe");
 				findJavaInfo.workingDirectory = File.applicationDirectory;
 				
 				findJavaProcess = new NativeProcess();
@@ -116,8 +113,8 @@ package net.riaspace.flerry
 
 		private function findJavaProcess_outputDataHandler(event:ProgressEvent):void
 		{
-			var javaDir:String = StringUtil.trim(findJavaProcess.standardOutput.readUTFBytes(findJavaProcess.standardOutput.bytesAvailable));
-			handleResultEvent(new File(javaDir + "\\bin\\javaw.exe"));	
+			var java:File = new File(findJavaProcess.standardOutput.readUTFBytes(findJavaProcess.standardOutput.bytesAvailable));
+			handleResultEvent(java);	
 			
 			if (findJavaProcess.running)
 				findJavaProcess.exit();
@@ -149,7 +146,7 @@ package net.riaspace.flerry
 			
 			var args:Vector.<String> = new Vector.<String>();
 			args.push("-cp");
-			args.push(StringUtil.substitute(classpathTemplate, os.indexOf('win') > -1 ? ';':':', binPath));
+			args.push(classpath);
 			args.push("net.riaspace.flerry.NativeObject");
 			args.push("-source", source, "-singleton", singleton);
 			startupInfo.arguments = args;
