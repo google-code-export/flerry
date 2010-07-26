@@ -8,8 +8,6 @@ package net.riaspace.flerry
 	import flash.filesystem.File;
 	import flash.system.Capabilities;
 	
-	import mx.utils.StringUtil;
-	
 	import net.riaspace.flerry.events.FlerryInitEvent;
 	
 	[Bindable]
@@ -24,17 +22,20 @@ package net.riaspace.flerry
 		
 		public var singleton:Boolean;
 		
+		public var debugPort:uint;
+		
 		protected var findJavaProcess:NativeProcess;
 		
 		private var os:String;
 		
-		public function BaseStartupInfoProvider(libsDirectory:String = null, source:String = null, singleton:Boolean = false)
+		public function BaseStartupInfoProvider(libsDirectory:String = null, source:String = null, singleton:Boolean = false, debugPort:uint = 8000)
 		{
 			this.os = Capabilities.os.toLowerCase();
 			
 			this.libsDirectory = libsDirectory;
 			this.source = source;
 			this.singleton = singleton;
+			this.debugPort = debugPort;
 			
 			processClasspath();
 		}
@@ -145,6 +146,8 @@ package net.riaspace.flerry
 			startupInfo.workingDirectory = File.applicationDirectory;
 			
 			var args:Vector.<String> = new Vector.<String>();
+			if (Capabilities.isDebugger)
+				args.push("-Xdebug", "-Xrunjdwp:transport=dt_socket,server=y,suspend=n,quiet=y,address=" + debugPort.toString());
 			args.push("-cp");
 			args.push(classpath);
 			args.push("net.riaspace.flerry.NativeObject");

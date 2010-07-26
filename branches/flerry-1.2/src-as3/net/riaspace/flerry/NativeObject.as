@@ -46,6 +46,9 @@ package net.riaspace.flerry
 		public var libsDirectory:String = "libs";
 		
 		[Bindable]
+		public var debugPort:uint = 8000;
+		
+		[Bindable]
 		public var startupInfoProvider:IStartupInfoProvider;
 		
 		protected var _methods:Array = new Array();
@@ -70,7 +73,7 @@ package net.riaspace.flerry
 		protected function initialize():void
 		{
 			if (!startupInfoProvider)
-				startupInfoProvider = new BaseStartupInfoProvider(libsDirectory, source, singleton);
+				startupInfoProvider = new BaseStartupInfoProvider(libsDirectory, source, singleton, debugPort);
 			startupInfoProvider.addEventListener(FlerryInitEvent.INIT_COMPLETE, startupInfoProvider_initCompleteHandler);
 			startupInfoProvider.addEventListener(FlerryInitEvent.INIT_ERROR, startupInfoProvider_initErrorHandler);
 			startupInfoProvider.findJava();
