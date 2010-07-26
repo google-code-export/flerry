@@ -1,25 +1,29 @@
 package net.riaspace.flerry
 {
 	import flash.desktop.NativeProcess;
-	import flash.desktop.NativeProcessStartupInfo;
 	import flash.events.Event;
 	import flash.events.EventDispatcher;
 	import flash.events.IEventDispatcher;
 	import flash.events.IOErrorEvent;
 	import flash.events.ProgressEvent;
+	import flash.system.Capabilities;
 	import flash.utils.ByteArray;
 	import flash.utils.Dictionary;
 	import flash.utils.Proxy;
 	import flash.utils.flash_proxy;
 	
 	import mx.core.mx_internal;
+	import mx.messaging.events.MessageEvent;
 	import mx.messaging.events.MessageFaultEvent;
 	import mx.messaging.messages.AcknowledgeMessage;
 	import mx.messaging.messages.ErrorMessage;
 	import mx.messaging.messages.RemotingMessage;
 	import mx.rpc.AsyncToken;
+	import mx.rpc.Fault;
 	import mx.rpc.events.FaultEvent;
 	import mx.rpc.events.ResultEvent;
+	
+	import net.riaspace.flerry.events.FlerryInitEvent;
 	
 	use namespace flash_proxy;
 	use namespace mx_internal;
@@ -38,14 +42,22 @@ package net.riaspace.flerry
 		
 		[Bindable]
 		public var singleton:Boolean = false;
+
+		[Bindable]
+		public var libsDirectory:String = "libs";
 		
 		[Bindable]
-		public var binPath:String;
-		
+		public var debugPort:uint = 8000;
+
 		[Bindable]
-		public var startupInfoProvider:IStartupInfoProvider = new JavaStartupInfoProvider();
+		public var debug:Boolean = Capabilities.isDebugger;
+
+		[Bindable]
+		public var startupInfoProvider:IStartupInfoProvider;
 		
 		protected var _methods:Array = new Array();
+		
+		protected var messagesBuffer:Vector.<RemotingMessage> = new Vector.<RemotingMessage>();
 		
 		protected var eventDispatcher:IEventDispatcher;
 		
@@ -57,14 +69,31 @@ package net.riaspace.flerry
 		
 		public function NativeObject(source:String = null, singleton:Boolean = false)
 		{
+			eventDispatcher = new EventDispatcher(this);
 			this.source = source;
 			this.singleton = singleton;
-			eventDispatcher = new EventDispatcher(this);
 		}
 		
 		protected function initialize():void
 		{
-			var startupInfo:NativeProcessStartupInfo = startupInfoProvider.getStartupInfo(binPath, source, singleton);
+			if (!startupInfoProvider)
+				startupInfoProvider = new BaseStartupInfoProvider(libsDirectory, source, singleton, debugPort);
+			startupInfoProvider.addEventListener(FlerryInitEvent.INIT_COMPLETE, startupInfoProvider_initCompleteHandler);
+			startupInfoProvider.addEventListener(FlerryInitEvent.INIT_ERROR, startupInfoProvider_initErrorHandler);
+			startupInfoProvider.findJava();
+		}
+
+		protected function startupInfoProvider_initErrorHandler(event:FlerryInitEvent):void
+		{
+			if (hasEventListener(FaultEvent.FAULT))
+				dispatchEvent(FaultEvent.createEvent(new Fault("001", event.errorMessage, event.errorMessage)));
+			else
+				trace("Error initilizing NativeProcessStartupInfo:", event.errorMessage);
+		}
+
+		protected function startupInfoProvider_initCompleteHandler(event:FlerryInitEvent):void
+		{
+			event.stopImmediatePropagation();
 			
 			nativeProcess = new NativeProcess();
 			nativeProcess.addEventListener(ProgressEvent.STANDARD_OUTPUT_DATA, onOutputData);
@@ -74,7 +103,14 @@ package net.riaspace.flerry
 			nativeProcess.addEventListener(IOErrorEvent.STANDARD_OUTPUT_IO_ERROR, ioErrorInputError);
 			nativeProcess.addEventListener(IOErrorEvent.STANDARD_ERROR_IO_ERROR, ioErrorInputError);
 			
-			nativeProcess.start(startupInfo);
+			nativeProcess.start(event.startupInfo);
+			
+			// Invoking buffered native calls
+			messagesBuffer.reverse();
+			while (messagesBuffer.length > 0)
+			{
+				writeMessageObject(messagesBuffer.pop());
+			}
 		}
 		
 		protected function ioErrorInputError(event:IOErrorEvent):void
@@ -117,8 +153,8 @@ package net.riaspace.flerry
 				// if message isn't a response to a request then dispatch MessageEvent
 				else if (message)
 				{
-					var msgEvent:MessageEvent = new MessageEvent(message.correlationId, message.body);					
-					dispatchEvent(msgEvent);
+					var messageEvent:mx.messaging.events.MessageEvent = MessageEvent.createEvent(message.correlationId, message)
+					dispatchEvent(messageEvent);
 				}
 				messageBytes.clear();
 			} 
@@ -127,12 +163,11 @@ package net.riaspace.flerry
 		protected function onErrorData(event:ProgressEvent):void
 		{
 			var buffer:ByteArray = new ByteArray();
-			while (nativeProcess.standardError.bytesAvailable > 0){
-				nativeProcess.standardError.readBytes(buffer, 
-					buffer.length, nativeProcess.standardError.bytesAvailable);
+			while (nativeProcess.standardError.bytesAvailable > 0)
+			{
+				nativeProcess.standardError.readBytes(buffer, buffer.length, nativeProcess.standardError.bytesAvailable);
 			}
 			var message:ErrorMessage = buffer.readObject() as ErrorMessage;
-
 			if (message && message.correlationId)
 			{
 				var token:AsyncToken = tokens[message.correlationId];
@@ -166,6 +201,10 @@ package net.riaspace.flerry
 		{
 			if(nativeProcess)
 			{
+				var stopMessage:RemotingMessage = new RemotingMessage();
+				stopMessage.headers = {STOP_PROCESS_HEADER:true};
+				writeMessageObject(stopMessage);
+				
 				nativeProcess.exit(true);
 				nativeProcess = null;
 			}
@@ -178,7 +217,15 @@ package net.riaspace.flerry
 		 */
 		public function subscribe(messageId:String, handler:Function):void
 		{
-			addEventListener(messageId,handler);
+			if (nativeProcess)
+				initialize();
+			
+			addEventListener(messageId, handler);
+		}
+		
+		override flash_proxy function setProperty(name:*, value:*):void
+		{
+			trace("setProperty called! " + name);
 		}
 		
 		override flash_proxy function callProperty(methodName:*, ... args):* 
@@ -192,28 +239,47 @@ package net.riaspace.flerry
 			}
 			return call(method, args);
 		}
-		
+			
 		protected function call(method:NativeMethod, ... args):AsyncToken
 		{
-			if (!nativeProcess)
-				initialize();
-			
 			var message:RemotingMessage = new RemotingMessage();
 			message.operation = method.name;
 			message.source = source;
 			message.headers = {SINGLETON_HEADER:singleton};
-			
 			if (args.length == 1)
-			{
 				message.body = args[0];
-			}
 			
-			nativeProcess.standardInput.writeObject(message);
+			if (!nativeProcess)
+			{
+				messagesBuffer.push(message);
+				initialize();
+			}
+			else
+			{
+				writeMessageObject(message);
+			}
 			
 			var token:AsyncToken = new AsyncToken(message);
 			tokens[message.messageId] = token;
 			
 			return token;
+		}
+		
+		protected function writeMessageObject(message:RemotingMessage):void
+		{
+			var bytes:ByteArray = new ByteArray;
+			bytes.writeObject(message);
+			// add flags to identify the end of message			
+			bytes.writeByte(99);
+			bytes.writeByte(99);
+			bytes.writeByte(99);
+			bytes.writeByte(99);
+			
+			var packetSize:int = 256;
+			// send the message in chunks of size {packetSize}
+			for(var i:int = 0; i < Math.ceil(bytes.length / packetSize) ; i++){
+				nativeProcess.standardInput.writeBytes(bytes,i * packetSize, Math.min(bytes.length - (i * packetSize),packetSize) ); 
+			}
 		}
 		
 		[Bindable]
