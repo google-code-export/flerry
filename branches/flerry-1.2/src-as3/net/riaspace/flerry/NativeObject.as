@@ -6,12 +6,14 @@ package net.riaspace.flerry
 	import flash.events.IEventDispatcher;
 	import flash.events.IOErrorEvent;
 	import flash.events.ProgressEvent;
+	import flash.system.Capabilities;
 	import flash.utils.ByteArray;
 	import flash.utils.Dictionary;
 	import flash.utils.Proxy;
 	import flash.utils.flash_proxy;
 	
 	import mx.core.mx_internal;
+	import mx.messaging.events.MessageEvent;
 	import mx.messaging.events.MessageFaultEvent;
 	import mx.messaging.messages.AcknowledgeMessage;
 	import mx.messaging.messages.ErrorMessage;
@@ -22,7 +24,6 @@ package net.riaspace.flerry
 	import mx.rpc.events.ResultEvent;
 	
 	import net.riaspace.flerry.events.FlerryInitEvent;
-	import net.riaspace.flerry.events.MessageEvent;
 	
 	use namespace flash_proxy;
 	use namespace mx_internal;
@@ -47,7 +48,10 @@ package net.riaspace.flerry
 		
 		[Bindable]
 		public var debugPort:uint = 8000;
-		
+
+		[Bindable]
+		public var debug:Boolean = Capabilities.isDebugger;
+
 		[Bindable]
 		public var startupInfoProvider:IStartupInfoProvider;
 		
@@ -65,9 +69,9 @@ package net.riaspace.flerry
 		
 		public function NativeObject(source:String = null, singleton:Boolean = false)
 		{
+			eventDispatcher = new EventDispatcher(this);
 			this.source = source;
 			this.singleton = singleton;
-			eventDispatcher = new EventDispatcher(this);
 		}
 		
 		protected function initialize():void
@@ -149,8 +153,8 @@ package net.riaspace.flerry
 				// if message isn't a response to a request then dispatch MessageEvent
 				else if (message)
 				{
-					var msgEvent:MessageEvent = new MessageEvent(message.correlationId, message.body);					
-					dispatchEvent(msgEvent);
+					var messageEvent:mx.messaging.events.MessageEvent = MessageEvent.createEvent(message.correlationId, message)
+					dispatchEvent(messageEvent);
 				}
 				messageBytes.clear();
 			} 
@@ -163,7 +167,6 @@ package net.riaspace.flerry
 			{
 				nativeProcess.standardError.readBytes(buffer, buffer.length, nativeProcess.standardError.bytesAvailable);
 			}
-			
 			var message:ErrorMessage = buffer.readObject() as ErrorMessage;
 			if (message && message.correlationId)
 			{
@@ -198,6 +201,10 @@ package net.riaspace.flerry
 		{
 			if(nativeProcess)
 			{
+				var stopMessage:RemotingMessage = new RemotingMessage();
+				stopMessage.headers = {STOP_PROCESS_HEADER:true};
+				writeMessageObject(stopMessage);
+				
 				nativeProcess.exit(true);
 				nativeProcess = null;
 			}
