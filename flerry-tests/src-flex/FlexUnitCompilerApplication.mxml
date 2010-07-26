@@ -9,16 +9,16 @@ Please click on the "Refresh" icon in "FlexUnit Results" view to regenerate this
 	<fx:Script>
 		<![CDATA[
 			import com.riaspace.flerry.tests.FlerryTestSuite;
-			import com.riaspace.flerry.tests.MessagingTests;
 			import com.riaspace.flerry.tests.RemotingTests;
+			import com.riaspace.flerry.tests.MessagingTests;
 			
 			private var com_riaspace_flerry_tests_FlerryTestSuite_obj:com.riaspace.flerry.tests.FlerryTestSuite;
 			
 			
-			private var com_riaspace_flerry_tests_MessagingTests_obj:com.riaspace.flerry.tests.MessagingTests;
-			
-			
 			private var com_riaspace_flerry_tests_RemotingTests_obj:com.riaspace.flerry.tests.RemotingTests;
+			
+			
+			private var com_riaspace_flerry_tests_MessagingTests_obj:com.riaspace.flerry.tests.MessagingTests;
 			
 		]]>
 	</fx:Script>

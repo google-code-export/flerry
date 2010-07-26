@@ -1,51 +1,24 @@
 package com.riaspace.flerry.tests;
 
-import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import net.riaspace.flerry.NativeObject;
 
-import com.riaspace.flerry.tests.models.ComplexVO;
-import com.riaspace.flerry.tests.models.NotExistingVO;
+import com.riaspace.flerry.tests.models.DynamicVO;
 
 public class JavaService {
+
 	public JavaService() {
 	}
 
-	public Integer add(Integer value1, Integer value2) {
-		return value1 + value2;
-	}
-
-	public ComplexVO processComplexVO(ComplexVO cvo) {
-		cvo.setSomeDate(new Date());
-		cvo.setSomeString("Hello Flex!");
-		cvo.setSomeInteger(1);
-
-		return cvo;
-	}
-
-	public List<ComplexVO> getLargeObject()
+	public Object[] exchangeLargeObjects(Object[] largeObject)
 	{
-		List<ComplexVO> result = new ArrayList<ComplexVO>();
-		
-		for(int i = 0; i < 100000; i++)
-		{
-			ComplexVO cvo = new ComplexVO();
-			cvo.setSomeDate(new Date());
-			cvo.setSomeString("Hello Flex!");
-			cvo.setSomeInteger(1);
-
-			result.add(cvo);
-		}
-		
-		return result;
+		return largeObject;
 	}
 	
-	public NotExistingVO getNotExistingVO(String someString) {
-		NotExistingVO result = new NotExistingVO();
+	public DynamicVO getDynamicObject(String someString) {
+		DynamicVO result = new DynamicVO();
 		result.setSomeString(someString);
 		return result;
 	}

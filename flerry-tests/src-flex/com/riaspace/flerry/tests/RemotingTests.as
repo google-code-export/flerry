@@ -3,6 +3,7 @@ package com.riaspace.flerry.tests
 	import com.riaspace.flerry.tests.models.ComplexVO;
 	
 	import mx.collections.ArrayCollection;
+	import mx.collections.ArrayList;
 	import mx.rpc.AsyncToken;
 	import mx.rpc.events.FaultEvent;
 	import mx.rpc.events.ResultEvent;
@@ -45,62 +46,42 @@ package com.riaspace.flerry.tests
 		}
 		
 		[Test(async, timeout="5000")]
-		public function addTest():void
+		public function exchangeLargeObjectsTest():void
 		{
-			var token:AsyncToken = nativeObject.add(1, 2);
-			token.addResponder(Async.asyncResponder(this, new TestResponder(add_resultHandler, remote_faultHandler), TIMEOUT));
+			var largeObject:Array = new Array();
+			for (var i:int = 0; i < 1000; i++)
+			{
+				var vo:ComplexVO = new ComplexVO();
+				vo.someDate = new Date();
+				vo.someInteger = 1;
+				vo.someString = "some value";
+				
+				largeObject.push(vo);
+			}
+			
+			var token:AsyncToken = nativeObject.exchangeLargeObjects(largeObject);
+			token.addResponder(Async.asyncResponder(this, new TestResponder(exchangeLargeObjects_resultHandler, remote_faultHandler), TIMEOUT));
 		}		
 
-		private function add_resultHandler(event:ResultEvent, param:*):void
-		{
-			assertEquals(3, event.result);
-		}
-		
 		[Test(async, timeout="5000")]
-		public function getLargeObjectTest():void
+		private function exchangeLargeObjects_resultHandler(event:ResultEvent, param:*):void
 		{
-			var token:AsyncToken = nativeObject.getLargeObject();
-			token.addResponder(Async.asyncResponder(this, new TestResponder(getLargeObject_resultHandler, remote_faultHandler), TIMEOUT));
-		}		
-
-		[Test(async, timeout="5000")]
-		private function getLargeObject_resultHandler(event:ResultEvent, param:*):void
-		{
-			var list:ArrayCollection = event.result as ArrayCollection;
+			var list:Array = event.result as Array;
 			assertNotNull(list);
-			assertEquals(list.length, 100000);
+			assertEquals(list.length, 1000);
 			
-			var cvo:ComplexVO = list.getItemAt(0) as ComplexVO;
+			var cvo:ComplexVO = list[0] as ComplexVO;
 			assertNotNull(cvo);
-		}
-		
-		[Test(async, timeout="5000")]
-		public function processComplexVOTest():void
-		{
-			var cvo:ComplexVO = new ComplexVO();
-			cvo.someString = "Hello Java!";
-			cvo.someInteger = 0;
-			cvo.someDate = new Date();
-			
-			var token:AsyncToken = nativeObject.processComplexVO(cvo);
-			token.addResponder(Async.asyncResponder(this, new TestResponder(processComplexVO_resultHandler, remote_faultHandler), TIMEOUT));
-		}		
-
-		private function processComplexVO_resultHandler(event:ResultEvent, param:*):void
-		{
-			var cvo:ComplexVO = event.result as ComplexVO;
-			assertNotNull(cvo);
-			assertEquals(cvo.someInteger, 1);
 		}
 
 		[Test(async, timeout="5000")]
-		public function getNotExistingVOTest():void
+		public function getDynamicObject():void
 		{
-			var token:AsyncToken = nativeObject.getNotExistingVO("some value");
-			token.addResponder(Async.asyncResponder(this, new TestResponder(getNotExistingVO_resultHandler, remote_faultHandler), TIMEOUT));
+			var token:AsyncToken = nativeObject.getDynamicObject("some value");
+			token.addResponder(Async.asyncResponder(this, new TestResponder(getDynamicObject_resultHandler, remote_faultHandler), TIMEOUT));
 		}
 
-		private function getNotExistingVO_resultHandler(event:ResultEvent, param:*):void
+		private function getDynamicObject_resultHandler(event:ResultEvent, param:*):void
 		{
 			assertEquals("some value", event.result.someString);
 		}

@@ -1,11 +1,11 @@
 package com.riaspace.flerry.tests.models;
 
-public class NotExistingVO
+public class DynamicVO
 {
 	
 	protected String someString;
 	
-	public NotExistingVO()
+	public DynamicVO()
 	{
 	}
 
