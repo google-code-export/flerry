@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- ====================================================================== 
+     Jul 23, 2010 4:46:02 PM                                                        
+
+     flerry    
+     flerry - Java-Flex bridge for AIR 2.0
+                   
+     pwalczys                                                                
+     ====================================================================== -->
+<project name="project" default="default">
+	
+    <description>
+            Flerry build file
+    </description>
+
+    <!-- ================================= 
+          target: default              
+         ================================= -->
+    <target name="default" depends="compile" description="description">
+		<jar destfile="libs/flerry.jar">
+			<fileset dir="bin-java" />
+		</jar>
+    </target>
+
+    <!-- - - - - - - - - - - - - - - - - - 
+          target: compile                      
+         - - - - - - - - - - - - - - - - - -->
+    <target name="compile">
+    	 <javac srcdir="src-java" 
+    	         destdir="bin-java"
+    	         classpath="libs/flex-messaging-core.jar:libs/flex-messaging-common.jar"
+    	  />
+    </target>
+
+</project>

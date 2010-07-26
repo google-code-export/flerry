@@ -1,9 +1,13 @@
 package net.riaspace.flerry
 {
 	import flash.desktop.NativeProcessStartupInfo;
+	import flash.events.IEventDispatcher;
 
-	public interface IStartupInfoProvider
+	[Event(name="result", type="net.riaspace.flerry.events.FlerryInitEvent")]
+	[Event(name="fault", type="net.riaspace.flerry.events.FlerryInitEvent")]
+	public interface IStartupInfoProvider extends IEventDispatcher
 	{
-		function getStartupInfo(binPath:String, source:String, singleton:Boolean, executablePath:String = null):NativeProcessStartupInfo;
+		function findJava():void;
 	}
+	
 }
