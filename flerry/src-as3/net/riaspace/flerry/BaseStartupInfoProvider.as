@@ -85,25 +85,34 @@ package net.riaspace.flerry
 		
 		protected function findJavaOnWindows():void 
 		{
-			try
+			var javaw:File = new File("c:/windows/system32/javaw.exe");
+			if (javaw.exists)
 			{
-				var findJavaInfo:NativeProcessStartupInfo = new NativeProcessStartupInfo();
-				findJavaInfo.executable = File.applicationDirectory.resolvePath(libsDirectory).resolvePath("FindJava.exe");
-				findJavaInfo.workingDirectory = File.applicationDirectory;
-				
-				findJavaProcess = new NativeProcess();
-				findJavaProcess.addEventListener(ProgressEvent.STANDARD_OUTPUT_DATA, findJavaProcess_outputDataHandler);
-				findJavaProcess.addEventListener(ProgressEvent.STANDARD_ERROR_DATA, findJavaProcess_errorDataHandler);
-				
-				findJavaProcess.addEventListener(IOErrorEvent.STANDARD_INPUT_IO_ERROR, findJavaProcess_ioErrorHandler);
-				findJavaProcess.addEventListener(IOErrorEvent.STANDARD_OUTPUT_IO_ERROR, findJavaProcess_ioErrorHandler);
-				findJavaProcess.addEventListener(IOErrorEvent.STANDARD_ERROR_IO_ERROR, findJavaProcess_ioErrorHandler);
-	
-				findJavaProcess.start(findJavaInfo);
+				handleResultEvent(javaw);
 			}
-			catch (error:Error)
+			// Running fallback mechanizm with FindJava.exe native code
+			else
 			{
-				handleError("Couldn't execute FindJava.exe: " + error.message);
+				try
+				{
+					var findJavaInfo:NativeProcessStartupInfo = new NativeProcessStartupInfo();
+					findJavaInfo.executable = File.applicationDirectory.resolvePath(libsDirectory).resolvePath("FindJava.exe");
+					findJavaInfo.workingDirectory = File.applicationDirectory;
+					
+					findJavaProcess = new NativeProcess();
+					findJavaProcess.addEventListener(ProgressEvent.STANDARD_OUTPUT_DATA, findJavaProcess_outputDataHandler);
+					findJavaProcess.addEventListener(ProgressEvent.STANDARD_ERROR_DATA, findJavaProcess_errorDataHandler);
+					
+					findJavaProcess.addEventListener(IOErrorEvent.STANDARD_INPUT_IO_ERROR, findJavaProcess_ioErrorHandler);
+					findJavaProcess.addEventListener(IOErrorEvent.STANDARD_OUTPUT_IO_ERROR, findJavaProcess_ioErrorHandler);
+					findJavaProcess.addEventListener(IOErrorEvent.STANDARD_ERROR_IO_ERROR, findJavaProcess_ioErrorHandler);
+		
+					findJavaProcess.start(findJavaInfo);
+				}
+				catch (error:Error)
+				{
+					handleError("Couldn't execute FindJava.exe: " + error.message);
+				}
 			}
 		}
 
@@ -119,9 +128,9 @@ package net.riaspace.flerry
 
 		private function findJavaProcess_outputDataHandler(event:ProgressEvent):void
 		{
-			var java:File = new File(StringUtil.trim(findJavaProcess.standardOutput.readUTFBytes(findJavaProcess.standardOutput.bytesAvailable)));
-			java = java.resolvePath("bin").resolvePath("javaw.exe");
-			handleResultEvent(java);	
+			var javaw:File = new File(StringUtil.trim(findJavaProcess.standardOutput.readUTFBytes(findJavaProcess.standardOutput.bytesAvailable)));
+			javaw = javaw.resolvePath("bin").resolvePath("javaw.exe");
+			handleResultEvent(javaw);	
 			
 			if (findJavaProcess.running)
 				findJavaProcess.exit();
