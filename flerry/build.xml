@@ -9,16 +9,43 @@
      ====================================================================== -->
 <project name="project" default="default">
 	
+	<property name="version" value="1.2.0" />
+	
     <description>
             Flerry build file
     </description>
 
+	<target name="package" depends="default">
+		<mkdir dir="package"/>
+		<copyfile dest="bin-as3/flerry-${version}.swc" src="bin-as3/flerry.swc"/>
+		<zip destfile="package/flerry-${version}.zip">
+			<fileset dir="." >
+    			<include name="libs/*.jar" />
+				<include name="libs/*.exe" />
+			</fileset>
+			<fileset dir="." >
+    			<include name="src-as3/**/*.as" />
+			</fileset>
+			<fileset dir="." >
+    			<include name="src-java/**/*.java" />
+			</fileset>
+			<fileset dir="bin-as3">
+				<include name="flerry-${version}.swc" />
+			</fileset>
+		</zip>
+		<delete file="bin-as3/flerry-${version}.swc" />
+	</target>
+	
     <!-- ================================= 
           target: default              
          ================================= -->
     <target name="default" depends="compile" description="description">
-		<jar destfile="libs/flerry.jar">
+		<jar destfile="libs/flerry-${version}.jar">
 			<fileset dir="bin-java" />
+			<manifest>
+				<attribute name="Specification-Version" value="${version}"/>
+				<attribute name="Implementation-Version" value="${version}"/>
+			</manifest>
 		</jar>
     </target>
 
