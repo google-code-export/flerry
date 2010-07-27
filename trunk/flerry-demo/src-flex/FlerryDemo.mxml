@@ -19,7 +19,7 @@
 
 			protected function nativeObject_faultHandler(event:FaultEvent):void
 			{
-				Alert.show(event.message.toString());
+				Alert.show(event.fault.faultDetail);
 			}
 
 			protected function addMethod_resultHandler(event:ResultEvent):void
