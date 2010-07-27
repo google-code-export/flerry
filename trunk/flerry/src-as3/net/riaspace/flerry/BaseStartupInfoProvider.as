@@ -72,36 +72,31 @@ package net.riaspace.flerry
 		
 		public function findJava():void
 		{
+			var java:File;
+			// Chacking first in default locations
 			if (os.indexOf('win') > -1)
-				findJavaOnWindows();
-			else
-				findJavaOnUnix();
-		}
-
-		protected function findJavaOnWindows():void 
-		{
-			var javaw:File = new File("c:/windows/system32/javaw.exe");
-			if (javaw.exists)
-				handleResultEvent(javaw);
-			// Running fallback mechanizm with FindJava.exe native code
-			else
-				runFallbackMechanizm(File.applicationDirectory.resolvePath(libsDirectory).resolvePath("FindJava.exe"));
-		}
-
-		protected function findJavaOnUnix():void
-		{
-			var java:File = new File("/usr/bin/java");
-			if (!java.exists)
-				java = new File(os.indexOf("mac") > -1 ? "/System/Library/Frameworks/JavaVM.framework/Versions/Current/Commands/java" : "/etc/alternatives/java");
-			
-			if (java.exists)
-				handleResultEvent(java);
-			// Running fallback mechanizm with FindJava.exe native code
+				java = new File("c:/windows/system32/javaw.exe");
 			else
 			{
-				var args:Vector.<String> = new Vector.<String>();
-				args.push("java");
-				runFallbackMechanizm(new File("/usr/bin/whereis"), args);
+				java = new File("/usr/bin/java");
+				if (!java.exists)
+					java = new File(os.indexOf("mac") > -1 ? "/System/Library/Frameworks/JavaVM.framework/Versions/Current/Commands/java" : "/etc/alternatives/java");
+			}
+			
+			// If default locations succeeded
+			if (java.exists)
+				handleResultEvent(java);
+			// Running fallback mechanizm with native services
+			else
+			{
+				if (os.indexOf('win') > -1)
+					runFallbackMechanizm(File.applicationDirectory.resolvePath(libsDirectory).resolvePath("FindJava.exe"));
+				else
+				{
+					var args:Vector.<String> = new Vector.<String>();
+					args.push("java");
+					runFallbackMechanizm(new File("/usr/bin/whereis"), args);
+				}				
 			}
 		}
 
