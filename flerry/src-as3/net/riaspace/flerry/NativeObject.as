@@ -85,6 +85,8 @@ package net.riaspace.flerry
 
 		protected function startupInfoProvider_initErrorHandler(event:FlerryInitEvent):void
 		{
+			event.stopImmediatePropagation();
+			
 			if (hasEventListener(FaultEvent.FAULT))
 				dispatchEvent(FaultEvent.createEvent(new Fault("001", event.errorMessage, event.errorMessage)));
 			else
