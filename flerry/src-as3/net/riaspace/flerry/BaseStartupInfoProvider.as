@@ -30,7 +30,7 @@ package net.riaspace.flerry
 		
 		private var os:String;
 		
-		public function BaseStartupInfoProvider(libsDirectory:String = null, source:String = null, singleton:Boolean = false, debugPort:uint = 8000, debug:Boolean = false)
+		public function BaseStartupInfoProvider(libsDirectory:String = null, source:String = null, singleton:Boolean = false, debug:Boolean = false, debugPort:uint = 8000)
 		{
 			this.os = Capabilities.os.toLowerCase();
 			
@@ -150,7 +150,7 @@ package net.riaspace.flerry
 			
 			var args:Vector.<String> = new Vector.<String>();
 			if (debug)
-				args.push("-Xdebug", "-Xrunjdwp:transport=dt_socket,server=y,suspend=n,quiet=y,address=" + debugPort.toString());
+				args.push("-Xdebug", "-Xrunjdwp:transport=dt_socket,server=n,suspend=n,quiet=y,address=" + debugPort.toString());
 			args.push("-cp");
 			args.push(classpath);
 			args.push("net.riaspace.flerry.NativeObject");

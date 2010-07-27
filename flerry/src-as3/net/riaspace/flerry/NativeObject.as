@@ -77,7 +77,7 @@ package net.riaspace.flerry
 		protected function initialize():void
 		{
 			if (!startupInfoProvider)
-				startupInfoProvider = new BaseStartupInfoProvider(libsDirectory, source, singleton, debugPort);
+				startupInfoProvider = new BaseStartupInfoProvider(libsDirectory, source, singleton, debug, debugPort);
 			startupInfoProvider.addEventListener(FlerryInitEvent.INIT_COMPLETE, startupInfoProvider_initCompleteHandler);
 			startupInfoProvider.addEventListener(FlerryInitEvent.INIT_ERROR, startupInfoProvider_initErrorHandler);
 			startupInfoProvider.findJava();
@@ -167,6 +167,7 @@ package net.riaspace.flerry
 			{
 				nativeProcess.standardError.readBytes(buffer, buffer.length, nativeProcess.standardError.bytesAvailable);
 			}
+			trace(buffer.toString());
 			var message:ErrorMessage = buffer.readObject() as ErrorMessage;
 			if (message && message.correlationId)
 			{
