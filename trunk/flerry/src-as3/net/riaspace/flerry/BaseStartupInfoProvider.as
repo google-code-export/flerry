@@ -8,6 +8,8 @@ package net.riaspace.flerry
 	import flash.filesystem.File;
 	import flash.system.Capabilities;
 	
+	import mx.utils.StringUtil;
+	
 	import net.riaspace.flerry.events.FlerryInitEvent;
 	
 	[Bindable]
@@ -117,7 +119,8 @@ package net.riaspace.flerry
 
 		private function findJavaProcess_outputDataHandler(event:ProgressEvent):void
 		{
-			var java:File = new File(findJavaProcess.standardOutput.readUTFBytes(findJavaProcess.standardOutput.bytesAvailable));
+			var java:File = new File(StringUtil.trim(findJavaProcess.standardOutput.readUTFBytes(findJavaProcess.standardOutput.bytesAvailable)));
+			java = java.resolvePath("bin").resolvePath("javaw.exe");
 			handleResultEvent(java);	
 			
 			if (findJavaProcess.running)
