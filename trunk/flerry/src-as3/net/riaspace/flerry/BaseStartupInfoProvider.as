@@ -78,72 +78,79 @@ package net.riaspace.flerry
 				findJavaOnUnix();
 		}
 
-		protected function handleError(errorMessage:String):void
-		{
-			dispatchEvent(new FlerryInitEvent(FlerryInitEvent.INIT_ERROR, null, errorMessage));
-		}
-		
 		protected function findJavaOnWindows():void 
 		{
 			var javaw:File = new File("c:/windows/system32/javaw.exe");
 			if (javaw.exists)
-			{
 				handleResultEvent(javaw);
-			}
 			// Running fallback mechanizm with FindJava.exe native code
 			else
-			{
-				try
-				{
-					var findJavaInfo:NativeProcessStartupInfo = new NativeProcessStartupInfo();
-					findJavaInfo.executable = File.applicationDirectory.resolvePath(libsDirectory).resolvePath("FindJava.exe");
-					findJavaInfo.workingDirectory = File.applicationDirectory;
-					
-					findJavaProcess = new NativeProcess();
-					findJavaProcess.addEventListener(ProgressEvent.STANDARD_OUTPUT_DATA, findJavaProcess_outputDataHandler);
-					findJavaProcess.addEventListener(ProgressEvent.STANDARD_ERROR_DATA, findJavaProcess_errorDataHandler);
-					
-					findJavaProcess.addEventListener(IOErrorEvent.STANDARD_INPUT_IO_ERROR, findJavaProcess_ioErrorHandler);
-					findJavaProcess.addEventListener(IOErrorEvent.STANDARD_OUTPUT_IO_ERROR, findJavaProcess_ioErrorHandler);
-					findJavaProcess.addEventListener(IOErrorEvent.STANDARD_ERROR_IO_ERROR, findJavaProcess_ioErrorHandler);
-		
-					findJavaProcess.start(findJavaInfo);
-				}
-				catch (error:Error)
-				{
-					handleError("Couldn't execute FindJava.exe: " + error.message);
-				}
-			}
+				runFallbackMechanizm(File.applicationDirectory.resolvePath(libsDirectory).resolvePath("FindJava.exe"));
 		}
 
-		private function findJavaProcess_ioErrorHandler(event:IOErrorEvent):void
-		{
-			handleError("Error finding Java on Windows platform: " + event.text);
-		}
-
-		private function findJavaProcess_errorDataHandler(event:ProgressEvent):void
-		{
-			handleError("Error finding Java on Windows platform: " + event.type);
-		}
-
-		private function findJavaProcess_outputDataHandler(event:ProgressEvent):void
-		{
-			var javaw:File = new File(StringUtil.trim(findJavaProcess.standardOutput.readUTFBytes(findJavaProcess.standardOutput.bytesAvailable)));
-			javaw = javaw.resolvePath("bin").resolvePath("javaw.exe");
-			handleResultEvent(javaw);	
-			
-			if (findJavaProcess.running)
-				findJavaProcess.exit();
-			findJavaProcess = null;
-		}
-		
 		protected function findJavaOnUnix():void
 		{
 			var java:File = new File("/usr/bin/java");
 			if (!java.exists)
 				java = new File(os.indexOf("mac") > -1 ? "/System/Library/Frameworks/JavaVM.framework/Versions/Current/Commands/java" : "/etc/alternatives/java");
 			
-			handleResultEvent(java);
+			if (java.exists)
+				handleResultEvent(java);
+			// Running fallback mechanizm with FindJava.exe native code
+			else
+			{
+				var args:Vector.<String> = new Vector.<String>();
+				args.push("java");
+				runFallbackMechanizm(new File("/usr/bin/whereis"), args);
+			}
+		}
+
+		protected function runFallbackMechanizm(executable:File, args:Vector.<String> = null):void
+		{
+			try
+			{
+				var findJavaInfo:NativeProcessStartupInfo = new NativeProcessStartupInfo();
+				findJavaInfo.executable = executable;
+				findJavaInfo.workingDirectory = File.applicationDirectory;
+				findJavaInfo.arguments = args
+				
+				findJavaProcess = new NativeProcess();
+				findJavaProcess.addEventListener(ProgressEvent.STANDARD_OUTPUT_DATA, findJavaProcess_outputDataHandler);
+				findJavaProcess.addEventListener(ProgressEvent.STANDARD_ERROR_DATA, findJavaProcess_errorDataHandler);
+				
+				findJavaProcess.addEventListener(IOErrorEvent.STANDARD_INPUT_IO_ERROR, findJavaProcess_ioErrorHandler);
+				findJavaProcess.addEventListener(IOErrorEvent.STANDARD_OUTPUT_IO_ERROR, findJavaProcess_ioErrorHandler);
+				findJavaProcess.addEventListener(IOErrorEvent.STANDARD_ERROR_IO_ERROR, findJavaProcess_ioErrorHandler);
+				
+				findJavaProcess.start(findJavaInfo);
+			}
+			catch (error:Error)
+			{
+				handleError("Couldn't execute whereis java: " + error.message);
+			}
+		}
+		
+		private function findJavaProcess_ioErrorHandler(event:IOErrorEvent):void
+		{
+			handleError("Error finding Java: " + event.text);
+		}
+
+		private function findJavaProcess_errorDataHandler(event:ProgressEvent):void
+		{
+			handleError("Error finding Java: " + event.type);
+		}
+
+		private function findJavaProcess_outputDataHandler(event:ProgressEvent):void
+		{
+			var java:File = new File(StringUtil.trim(findJavaProcess.standardOutput.readUTFBytes(findJavaProcess.standardOutput.bytesAvailable)));
+			if (os.indexOf('win') > -1) // In case of win FindJava.exe returns only path to directory with java
+				java = java.resolvePath("bin").resolvePath("javaw.exe");
+			
+			handleResultEvent(java);	
+			
+			if (findJavaProcess.running)
+				findJavaProcess.exit();
+			findJavaProcess = null;
 		}
 
 		protected function handleResultEvent(java:File):void
@@ -171,5 +178,11 @@ package net.riaspace.flerry
 			
 			return startupInfo;	
 		}
+		
+		protected function handleError(errorMessage:String):void
+		{
+			dispatchEvent(new FlerryInitEvent(FlerryInitEvent.INIT_ERROR, null, errorMessage));
+		}
+
 	}
 }
