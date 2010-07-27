@@ -75,7 +75,7 @@ package com.riaspace.flerry.tests
 		}
 
 		[Test(async, timeout="5000")]
-		public function getDynamicObject():void
+		public function getDynamicObjectTest():void
 		{
 			var token:AsyncToken = nativeObject.getDynamicObject("some value");
 			token.addResponder(Async.asyncResponder(this, new TestResponder(getDynamicObject_resultHandler, remote_faultHandler), TIMEOUT));
