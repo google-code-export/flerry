@@ -46,7 +46,7 @@ package com.riaspace.flerry.tests
 		private function sendMessage_resultHandler(event:MessageEvent, param:*):void 
 		{
 			var count:int = event.message.body["count"];
-			trace("count:", count);
+//			trace("count:", count);
 			
 			assertTrue(count is int);
 			

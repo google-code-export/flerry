@@ -17,7 +17,7 @@
 
 	<target name="package" depends="default">
 		<mkdir dir="package"/>
-		<copyfile dest="bin-as3/flerry-${version}.swc" src="bin-as3/flerry.swc"/>
+		<copy file="bin-as3/flerry.swc" tofile="bin-as3/flerry-${version}.swc" />
 		<zip destfile="package/flerry-${version}.zip">
 			<fileset dir="." >
     			<include name="libs/*.jar" />

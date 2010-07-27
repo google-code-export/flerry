@@ -164,34 +164,38 @@ package net.riaspace.flerry
 		{
 			var buffer:ByteArray = new ByteArray();
 			while (nativeProcess.standardError.bytesAvailable > 0)
-			{
 				nativeProcess.standardError.readBytes(buffer, buffer.length, nativeProcess.standardError.bytesAvailable);
-			}
-			trace(buffer.toString());
-			var message:ErrorMessage = buffer.readObject() as ErrorMessage;
-			if (message && message.correlationId)
+
+			try
 			{
-				var token:AsyncToken = tokens[message.correlationId];
-				delete tokens[message.correlationId];
-				
-				var resultEvent:FaultEvent = FaultEvent.createEventFromMessageFault(MessageFaultEvent.createEvent(message), token);
-				
-				token.applyFault(resultEvent);
-				
-				var remotingMessage:RemotingMessage = token.message as RemotingMessage;
-				if (remotingMessage)
+				var message:ErrorMessage = buffer.readObject() as ErrorMessage;
+				if (message && message.correlationId)
 				{
-					var method:NativeMethod = _methods[remotingMessage.operation];
-					if (method.hasEventListener(FaultEvent.FAULT))
-						method.dispatchEvent(resultEvent);					
+					var token:AsyncToken = tokens[message.correlationId];
+					delete tokens[message.correlationId];
+					
+					var resultEvent:FaultEvent = FaultEvent.createEventFromMessageFault(MessageFaultEvent.createEvent(message), token);
+					
+					token.applyFault(resultEvent);
+					var remotingMessage:RemotingMessage = token.message as RemotingMessage;
+					if (remotingMessage)
+					{
+						var method:NativeMethod = _methods[remotingMessage.operation];
+						if (method.hasEventListener(FaultEvent.FAULT))
+							method.dispatchEvent(resultEvent);					
+					}
+					
+					if (hasEventListener(FaultEvent.FAULT))
+						dispatchEvent(resultEvent);
+				} 
+				else if (message)
+				{
+					throw new Error("NativeProcess error without correlationId: " + message);
 				}
-				
-				if (hasEventListener(FaultEvent.FAULT))
-					dispatchEvent(resultEvent);
 			} 
-			else if (message)
+			catch (error:Error)
 			{
-				throw new Error("NativeProcess error without correlationId: " + message);
+				throw new Error("Error deserializing received AMF object: " + buffer.toString());
 			}
 		}
 		
