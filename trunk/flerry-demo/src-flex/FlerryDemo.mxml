@@ -16,6 +16,7 @@
 			import mx.utils.ObjectUtil;
 			
 			import net.riaspace.flerrydemo.models.ComplexVO;
+			import net.riaspace.flerrydemo.responder.AddResponder;
 
 			protected function nativeObject_faultHandler(event:FaultEvent):void
 			{
@@ -29,7 +30,7 @@
 
 			protected function btnAdd_clickHandler(event:MouseEvent):void
 			{
-				nativeObject.add(parseInt(txtValue1.text), parseInt(txtValue2.text));
+				nativeObject.add(new AddResponder(txtResult),parseInt(txtValue1.text), parseInt(txtValue2.text));
 			}
 
 			protected function btnSendComplexVO_clickHandler(event:MouseEvent):void
@@ -98,7 +99,7 @@
 	</fx:Script>
 	
 	<fx:Declarations>
-		<flerry:NativeObject id="nativeObject" singleton="true" source="net.riaspace.flerrydemo.MyJavaObject" fault="nativeObject_faultHandler(event)">
+		<flerry:NativeObject id="nativeObject" debug="false" singleton="true" source="net.riaspace.flerrydemo.MyJavaObject" fault="nativeObject_faultHandler(event)">
 			<flerry:NativeMethod id="addMethod" name="add" result="addMethod_resultHandler(event)" />
 			<flerry:NativeMethod id="processComplexVOMethod" name="processComplexVO" result="processComplexVOMethod_resultHandler(event)" />
 			<flerry:NativeMethod id="getNotExistingVOMethod" name="getNotExistingVO" result="getNotExistingVOMethod_resultHandler(event)" />
