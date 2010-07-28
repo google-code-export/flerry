@@ -262,7 +262,7 @@ package net.riaspace.flerry
 				NativeMethod(method).addEventListener(ResultEvent.RESULT,resultResponder)
 				// same as above :)
 				var faultResponder:Function = function(e:FaultEvent):void {
-					responder.result(e);
+					responder.fault(e);
 					NativeMethod(method).removeEventListener(FaultEvent.FAULT,faultResponder)
 				}
 				NativeMethod(method).addEventListener(ResultEvent.RESULT,faultResponder)
