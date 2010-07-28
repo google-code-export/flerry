@@ -20,6 +20,7 @@ package net.riaspace.flerry
 	import mx.messaging.messages.RemotingMessage;
 	import mx.rpc.AsyncToken;
 	import mx.rpc.Fault;
+	import mx.rpc.IResponder;
 	import mx.rpc.events.FaultEvent;
 	import mx.rpc.events.ResultEvent;
 	
@@ -237,13 +238,36 @@ package net.riaspace.flerry
 		
 		override flash_proxy function callProperty(methodName:*, ... args):* 
 		{
-			var method:NativeMethod = _methods[methodName];
-			if (method == null)
-			{
+			
+			var method:* = _methods[methodName];
+			
+			if(method is Function){
+				var fnc:Function = method;
+				return fnc.apply(args);
+			}
+			
+			if (method == null){
 				method = new NativeMethod();
 				method.name = methodName;
 				_methods[methodName] = method;
 			}
+			
+			if(args && args.length > 0 && args[0] is IResponder){
+				var responder:IResponder = args.shift()
+				// listener function as variable so we can remove it after the call
+				var resultResponder:Function = function(e:ResultEvent):void {
+					responder.result(e);
+					NativeMethod(method).removeEventListener(ResultEvent.RESULT,resultResponder)
+				}
+				NativeMethod(method).addEventListener(ResultEvent.RESULT,resultResponder)
+				// same as above :)
+				var faultResponder:Function = function(e:FaultEvent):void {
+					responder.result(e);
+					NativeMethod(method).removeEventListener(FaultEvent.FAULT,faultResponder)
+				}
+				NativeMethod(method).addEventListener(ResultEvent.RESULT,faultResponder)
+			}
+			
 			return call(method, args);
 		}
 			
