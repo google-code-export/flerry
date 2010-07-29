@@ -265,7 +265,7 @@ package net.riaspace.flerry
 					responder.fault(e);
 					NativeMethod(method).removeEventListener(FaultEvent.FAULT,faultResponder)
 				}
-				NativeMethod(method).addEventListener(ResultEvent.RESULT,faultResponder)
+				NativeMethod(method).addEventListener(FaultEvent.FAULT,faultResponder)
 			}
 			
 			return call(method, args);
