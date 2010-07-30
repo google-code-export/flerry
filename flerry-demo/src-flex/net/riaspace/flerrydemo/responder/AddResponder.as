@@ -15,7 +15,7 @@ package net.riaspace.flerrydemo.responder
 		
 		public function result(data:Object):void
 		{
-			trace(data.result)
+			txt.text = data.result.toString();
 		}
 		
 		public function fault(info:Object):void
