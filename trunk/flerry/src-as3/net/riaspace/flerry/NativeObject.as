@@ -51,7 +51,7 @@ package net.riaspace.flerry
 		public var debugPort:uint = 8000;
 
 		[Bindable]
-		public var debug:Boolean = Capabilities.isDebugger;
+		public var debug:Boolean = false;
 
 		[Bindable]
 		public var startupInfoProvider:IStartupInfoProvider;
