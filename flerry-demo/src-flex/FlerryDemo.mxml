@@ -99,7 +99,7 @@
 	</fx:Script>
 	
 	<fx:Declarations>
-		<flerry:NativeObject id="nativeObject" debug="false" singleton="true" source="net.riaspace.flerrydemo.MyJavaObject" fault="nativeObject_faultHandler(event)">
+		<flerry:NativeObject id="nativeObject" singleton="true" source="net.riaspace.flerrydemo.MyJavaObject" fault="nativeObject_faultHandler(event)">
 			<flerry:NativeMethod id="addMethod" name="add" result="addMethod_resultHandler(event)" />
 			<flerry:NativeMethod id="processComplexVOMethod" name="processComplexVO" result="processComplexVOMethod_resultHandler(event)" />
 			<flerry:NativeMethod id="getNotExistingVOMethod" name="getNotExistingVO" result="getNotExistingVOMethod_resultHandler(event)" />
