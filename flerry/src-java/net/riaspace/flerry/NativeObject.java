@@ -1,12 +1,18 @@
 package net.riaspace.flerry;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.PrintStream;
+import java.lang.reflect.Method;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
 
 import flex.messaging.io.SerializationContext;
 import flex.messaging.io.amf.Amf3Input;
@@ -15,126 +21,141 @@ import flex.messaging.messages.AcknowledgeMessage;
 import flex.messaging.messages.ErrorMessage;
 import flex.messaging.messages.RemotingMessage;
 
-public class NativeObject {
+
+public class NativeObject 
+{
+	
 	public static final String STOP_PROCESS_HEADER = "STOP_PROCESS_HEADER";
-
 	protected Class<?> sourceClass;
-
 	protected Boolean singleton;
-
 	protected Object singletonObject;
-
+	
 	protected static PrintStream out = System.out;
 	protected static PrintStream err = System.err;
-	protected PrintStream fileOut;
+	protected static InputStream in = System.in;
+	
+	protected static Lock readWriteLock = new ReentrantLock();
 
-	public NativeObject(Class<?> sourceClass, Boolean singleton) {
-		this.sourceClass = sourceClass;
-		this.singleton = singleton;
-
-		try {
+	public NativeObject(Class<?> sourceClass, Boolean singleton) 
+	{
+		try 
+		{
 			System.setOut(new PrintStream(new FileOutputStream("out.log", true)));
 			System.setErr(new PrintStream(new FileOutputStream("err.log", true)));
-		} catch (FileNotFoundException e) {
+		} 
+		catch (FileNotFoundException e) {
 			// TODO what to do here?
 		}
+		
+		this.sourceClass = sourceClass;
+		this.singleton = singleton;
 	}
 
-	private boolean packetEnd(byte[] bytes, int i) {
-		if (i < 3)
-			return false;
-		return (bytes[i] == 99 && bytes[i - 1] == 99 && bytes[i - 2] == 99 && bytes[i - 3] == 99);
-	}
+	public void init() 
+	{
+		final int BUFFER_SIZE = 512;
+		char[] buffer = new char[BUFFER_SIZE]; 
+		BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(in));
+		StringBuffer stringBuffer = new StringBuffer();
+		
+		try 
+		{
+			int read;
+			while ((read = bufferedReader.read(buffer, 0, buffer.length)) > 0) 
+			{
+				stringBuffer.append(buffer, 0, read);
+				String tempString  = stringBuffer.toString();
+				
+				//if the string contains 2 markers
+				if ((tempString.startsWith("_")) && (tempString.indexOf("_", 1) != -1)) 
+				{
+					//take string between the markers only
+					int beginIndex = 1;
+					int endIndex = tempString.indexOf("_", 1);
+					String amfString = tempString.substring(beginIndex,endIndex);
+					
+					//decode Base64 string to AMF bytes
+					byte[] amfBytes = Base64.decode(amfString);
 
-	public void init() {
-		Amf3Input amf3Input = new Amf3Input(SerializationContext.getSerializationContext());
-		amf3Input.setInputStream(System.in);
+					//create input stream for Amf3Input
+					InputStream bais = new ByteArrayInputStream(amfBytes);
+					Amf3Input amf3Input = new Amf3Input(SerializationContext.getSerializationContext());
+					amf3Input.setInputStream(bais);
+					
+					//cleanup
+					stringBuffer = new StringBuffer(); 
+					tempString = "";
+					
+					try 
+					{
+						Object object = amf3Input.readObject();
+						if (object instanceof RemotingMessage)
+						{
+							RemotingMessage message = (RemotingMessage) object;
+							try 
+							{
+								if (message.getSource() != null) 
+								{
+									Object sourceObject = null;
+									if (singleton)sourceObject = singletonObject;
 
-		try {
-			Object object;
-			// max size of byteArray sent from flex
-			int packetSize = 256;
-			// max total size of remoteMessage
-			int MAX = 1000000;
-			// buffer all chunks
-			byte[] allBytes = new byte[MAX];
-			// buffer current packet
-			byte[] bytes = new byte[packetSize];
-			// offset of packet within allbytes
-			int offset = 0;
-			while (amf3Input.read(bytes) != -1) {
-				int j;
-				for (j = 0; j < packetSize; j++) {
-					byte b = bytes[j];
-					allBytes[offset + j] = b;
-					if (packetEnd(allBytes, offset + j)) {
-						break;
-					}
-				}
-				// reached the end of message, join the chunks
-				if (packetEnd(allBytes, offset + j)) {
-					// creates a inputStream from allBytes, excluding the flags
-					InputStream bytesInput = new ByteArrayInputStream(allBytes, 0, offset + j - 3);
-					Amf3Input amf3BytesInput = new Amf3Input(SerializationContext.getSerializationContext());
-					amf3BytesInput.setInputStream(bytesInput);
-					object = amf3BytesInput.readObject();
-					// restart the offset. ready to a new message
-					offset = 0;
-				} else {
-					// set thes offset, ready to a new chunk
-					offset += packetSize;
-					continue;
-				}
+									if (sourceObject == null) 
+									{
+										sourceObject = sourceClass.newInstance();
+										if (singleton)singletonObject = sourceObject;
+									}
 
-				if (object instanceof RemotingMessage) {
-					RemotingMessage message = (RemotingMessage) object;
-					try {
-						if (message.getSource() != null) {
-							Object sourceObject = null;
-							if (singleton)
-								sourceObject = singletonObject;
-
-							if (sourceObject == null) {
-								sourceObject = sourceClass.newInstance();
-								if (singleton)
-									singletonObject = sourceObject;
+									Object[] params = (Object[]) message.getBody();
+								
+									Method[] methods =  sourceObject.getClass().getMethods();
+									for (Method method : methods)
+									{
+										if (method.getName().equals(message.getOperation()) && method.getParameterTypes().length == params.length) 
+										{
+											
+											Object result = method.invoke(sourceObject, params);
+											
+											sendMessage(result, message.getMessageId());
+											break;
+										}
+									}
+								} 
+								else 
+								{
+									Boolean stopProcess = (Boolean) message.getHeader(NativeObject.STOP_PROCESS_HEADER);
+									if (stopProcess != null && stopProcess) 
+									{
+										break;
+									}
+								}
+							} 
+							catch (Exception e)
+							{
+								handleException(e, message.getMessageId());
 							}
-
-							Object[] params = (Object[]) message.getBody();
-							Class<?>[] paramsTypes = new Class[params.length];
-							for (int i = 0; i < paramsTypes.length; i++) {
-								paramsTypes[i] = params[i].getClass();
-							}
-
-							Object result = sourceObject.getClass().getMethod(message.getOperation(), paramsTypes)
-									.invoke(sourceObject, params);
-							sendMessage(result, message.getMessageId());
-						} else {
-							Boolean stopProcess = (Boolean) message.getHeader(NativeObject.STOP_PROCESS_HEADER);
-							if (stopProcess != null && stopProcess) {
-								break;
-							}
+						} 
+						else 
+						{
+							handleException(new Exception("Received object is not RemotingMessage type!"),null);
 						}
-					} catch (Exception e) {
-						handleException(e, message.getMessageId());
+					} 
+					catch (ClassNotFoundException e) 
+					{
+						e.printStackTrace();
 					}
-				} else {
-					handleException(new Exception("Received object is not RemotingMessage type!"), null);
 				}
 			}
-		} catch (Exception e) {
+		} 
+		catch (IOException e) 
+		{
 			handleException(e, null);
-		} finally {
-			try {
-				amf3Input.close();
-			} catch (IOException e) {
-				handleException(e, null);
-			}
 		}
 	}
 
-	protected static void handleException(Exception e, String correlationId) {
-		try {
+	protected static void handleException(Exception e, String correlationId) 
+	{
+		try 
+		{
 			Amf3Output amf3Output = new Amf3Output(SerializationContext.getSerializationContext());
 			ByteArrayOutputStream baos = new ByteArrayOutputStream();
 			amf3Output.setOutputStream(baos);
@@ -145,16 +166,28 @@ public class NativeObject {
 			message.setCorrelationId(correlationId);
 
 			amf3Output.writeObject(message);
-			err.write(baos.toByteArray());
+			
+			//Convert AMF binary data to Base64 string 
+			String amfString = Base64.encodeBytes(baos.toByteArray());
+			
+			//add markers at the beginning and the end of the string
+			amfString = "_" + amfString + "_" ; 
+			
+			err.write(amfString.getBytes("utf-8"));
 
 			amf3Output.close();
-		} catch (Exception e1) {
+		} 
+		catch (Exception e1) 
+		{
 			e1.printStackTrace();
 		}
 	}
 
-	public static void sendMessage(Object object, String correlationId) {
-		try {
+	public static void sendMessage(Object object, String correlationId) 
+	{
+		try 
+		{
+			
 			Amf3Output amf3Output = new Amf3Output(SerializationContext.getSerializationContext());
 			ByteArrayOutputStream baos = new ByteArrayOutputStream();
 			amf3Output.setOutputStream(baos);
@@ -163,29 +196,30 @@ public class NativeObject {
 			message.setBody(object);
 			message.setCorrelationId(correlationId);
 			amf3Output.writeObject(message);
+			
 
-			byte[] tempArry = baos.toByteArray();
-			byte[] byteArray = new byte[tempArry.length + 4];
-
-			int index = 0;
-			for (; index < tempArry.length; ++index) {
-				byteArray[index] = tempArry[index];
-			}
-
-			// add marker bytes at the end of the array
-			byteArray[index] = new Byte("99");
-			byteArray[index + 1] = new Byte("99");
-			byteArray[index + 2] = new Byte("99");
-			byteArray[index + 3] = new Byte("99");
-			out.write(byteArray);
-
+			//Convert AMF binary data to Base64 string 
+			String amfString = Base64.encodeBytes(baos.toByteArray());
+			
+			//add markers at the beginning and the end of the string
+			amfString = "_" + amfString + "_" ; 
+			out.write(amfString.getBytes("utf-8"));
+			
+			amf3Output.flush();
+			amf3Output.reset();
 			amf3Output.close();
-		} catch (Exception e) {
+			//Thread.sleep(10);
+		} 
+		catch (Exception e) 
+		{
 			handleException(e, correlationId);
 		}
 	}
-
-	public static void main(String[] args) {
+	
+	public static void main(String[] args) 
+	{
+		NativeObject.readWriteLock.lock();
+		
 		String source = null;
 		Boolean singleton = false;
 		for (int i = 0; i < args.length; i++) {
@@ -195,11 +229,15 @@ public class NativeObject {
 				singleton = Boolean.parseBoolean(args[i + 1]);
 		}
 
-		try {
-			(new NativeObject(Class.forName(source), singleton)).init();
-		} catch (ClassNotFoundException e) {
-			handleException(e, null);
+		NativeObject nativeObject = null;
+		try 
+		{
+			nativeObject = new NativeObject(Class.forName(source), singleton);
+			nativeObject.init();
+		} catch (Exception e) {
+			nativeObject.handleException(e, null);
 		}
+		
+		NativeObject.readWriteLock.unlock();
 	}
-
 }
