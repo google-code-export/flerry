@@ -23,6 +23,8 @@ package net.riaspace.flerry
 	import mx.rpc.IResponder;
 	import mx.rpc.events.FaultEvent;
 	import mx.rpc.events.ResultEvent;
+	import mx.utils.Base64Decoder;
+	import mx.utils.Base64Encoder;
 	
 	import net.riaspace.flerry.events.FlerryInitEvent;
 	
@@ -66,7 +68,8 @@ package net.riaspace.flerry
 		
 		protected var tokens:Dictionary = new Dictionary();
 		
-		protected var messageBytes:ByteArray = new ByteArray();
+		protected var messageBase64String:String = new String();
+		protected var errorBase64String:String = new String();
 		
 		public function NativeObject(source:String = null, singleton:Boolean = false)
 		{
@@ -118,22 +121,28 @@ package net.riaspace.flerry
 		
 		protected function ioErrorInputError(event:IOErrorEvent):void
 		{
-			messageBytes.clear();
+			messageBase64String = "";
+			errorBase64String = "";
+			trace("input error ")
 		}
 		
 		protected function onOutputData(event:ProgressEvent):void
 		{
-			nativeProcess.standardOutput.readBytes(
-				messageBytes, messageBytes.length, nativeProcess.standardOutput.bytesAvailable);
-			
-			if ((messageBytes[messageBytes.length -1] == 99) &&  
-				(messageBytes[messageBytes.length -2] == 99) && 
-				(messageBytes[messageBytes.length -3] == 99) && 
-				(messageBytes[messageBytes.length -4] == 99))
+			var tempString:String = nativeProcess.standardOutput.readUTFBytes(nativeProcess.standardOutput.bytesAvailable);
+			messageBase64String += tempString;
+			// multiple concurrent messages arrive together from java
+			while ((messageBase64String.indexOf('_', 0) != -1) && (messageBase64String.indexOf('_', 1) != -1))
 			{
-				/* NOTE: messageBytes.readObject will IGNORE the marker bytes automatically, so no need to delete them */
-				//create object from the collected bytes
-				var message:AcknowledgeMessage = messageBytes.readObject() as AcknowledgeMessage;
+				var beginIndex:int = 1;
+				var endIndex:int = messageBase64String.indexOf("_", 1);
+				var tempMessage:String = messageBase64String.substring(beginIndex, endIndex);
+				messageBase64String = messageBase64String.substring(endIndex+1);
+				var dec:Base64Decoder = new Base64Decoder();
+				dec.decode(tempMessage);
+				var result:ByteArray = dec.drain();
+				result.position=0;
+				
+				var message:AcknowledgeMessage = result.readObject() as AcknowledgeMessage;
 				if (message && tokens[message.correlationId])
 				{
 					var token:AsyncToken = tokens[message.correlationId];
@@ -153,52 +162,62 @@ package net.riaspace.flerry
 					if (hasEventListener(ResultEvent.RESULT))
 						dispatchEvent(resultEvent);
 				}
-				// if message isn't a response to a request then dispatch MessageEvent
+					// if message isn't a response to a request then dispatch MessageEvent
 				else if (message)
 				{
 					var messageEvent:mx.messaging.events.MessageEvent = MessageEvent.createEvent(message.correlationId, message)
 					dispatchEvent(messageEvent);
 				}
-				messageBytes.clear();
 			} 
 		}
 		
 		protected function onErrorData(event:ProgressEvent):void
 		{
-			var buffer:ByteArray = new ByteArray();
-			while (nativeProcess.standardError.bytesAvailable > 0)
-				nativeProcess.standardError.readBytes(buffer, buffer.length, nativeProcess.standardError.bytesAvailable);
-
-			try
+			var tempString:String = nativeProcess.standardError.readUTFBytes(nativeProcess.standardError.bytesAvailable);
+			errorBase64String += tempString;
+			
+			if ((errorBase64String.indexOf('_', 0) != -1) && (errorBase64String.indexOf('_', 1) != -1)) 
 			{
-				var message:ErrorMessage = buffer.readObject() as ErrorMessage;
-				if (message && message.correlationId)
+				var beginIndex:int = 1;
+				var endIndex:int = errorBase64String.indexOf("_", 1);
+				errorBase64String = errorBase64String.substring(beginIndex, endIndex);
+				var dec:Base64Decoder= new Base64Decoder();
+				dec.decode(errorBase64String);
+				var result:ByteArray = dec.drain();
+				result.position=0;
+				
+				try
 				{
-					var token:AsyncToken = tokens[message.correlationId];
-					delete tokens[message.correlationId];
-					
-					var resultEvent:FaultEvent = FaultEvent.createEventFromMessageFault(MessageFaultEvent.createEvent(message), token);
-					
-					token.applyFault(resultEvent);
-					var remotingMessage:RemotingMessage = token.message as RemotingMessage;
-					if (remotingMessage)
+					var message:ErrorMessage = result.readObject() as ErrorMessage;
+					if (message && message.correlationId)
 					{
-						var method:NativeMethod = _methods[remotingMessage.operation];
-						if (method.hasEventListener(FaultEvent.FAULT))
-							method.dispatchEvent(resultEvent);					
+						var token:AsyncToken = tokens[message.correlationId];
+						delete tokens[message.correlationId];
+						
+						var resultEvent:FaultEvent = FaultEvent.createEventFromMessageFault(MessageFaultEvent.createEvent(message), token);
+						
+						token.applyFault(resultEvent);
+						var remotingMessage:RemotingMessage = token.message as RemotingMessage;
+						if (remotingMessage)
+						{
+							var method:NativeMethod = _methods[remotingMessage.operation];
+							if (method.hasEventListener(FaultEvent.FAULT))
+								method.dispatchEvent(resultEvent);					
+						}
+						
+						if (hasEventListener(FaultEvent.FAULT))
+							dispatchEvent(resultEvent);
+					} 
+					else if (message)
+					{
+						throw new Error("NativeProcess error without correlationId: " + message);
 					}
-					
-					if (hasEventListener(FaultEvent.FAULT))
-						dispatchEvent(resultEvent);
 				} 
-				else if (message)
+				catch (error:Error)
 				{
-					throw new Error("NativeProcess error without correlationId: " + message);
+					throw new Error("Error deserializing received AMF object: " + result.toString());
 				}
-			} 
-			catch (error:Error)
-			{
-				throw new Error("Error deserializing received AMF object: " + buffer.toString());
+				errorBase64String = '';
 			}
 		}
 		
@@ -298,19 +317,13 @@ package net.riaspace.flerry
 		
 		protected function writeMessageObject(message:RemotingMessage):void
 		{
-			var bytes:ByteArray = new ByteArray;
+			var bytes:ByteArray = new ByteArray();
 			bytes.writeObject(message);
-			// add flags to identify the end of message			
-			bytes.writeByte(99);
-			bytes.writeByte(99);
-			bytes.writeByte(99);
-			bytes.writeByte(99);
-			
-			var packetSize:int = 256;
-			// send the message in chunks of size {packetSize}
-			for(var i:int = 0; i < Math.ceil(bytes.length / packetSize) ; i++){
-				nativeProcess.standardInput.writeBytes(bytes,i * packetSize, Math.min(bytes.length - (i * packetSize),packetSize) ); 
-			}
+			var be:Base64Encoder = new Base64Encoder();
+			be.encodeBytes(bytes);
+			var amfString:String = be.toString();
+			amfString =  '_' + amfString + '_';  
+			nativeProcess.standardInput.writeMultiByte(amfString, "utf-8");
 		}
 		
 		[Bindable]
